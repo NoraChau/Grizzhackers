@@ -4,7 +4,7 @@ Every message on the WebSocket is one JSON object:
     {"type": "<one of the names below>", "payload": {...}}
 
 Keep this file in sync with overlay/src/protocol.ts. Add a type here -> add it there too.
-Owner: Experienced #2
+Owner: Michael
 """
 
 from collections.abc import Awaitable, Callable

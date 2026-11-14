@@ -4,7 +4,7 @@
  * Every WebSocket message is one JSON object: { type: "...", payload: {...} }
  * Keep this file in sync with backend/protocol.py. Add a type there -> add it here too.
  *
- * Owner: Experienced #2
+ * Owner: Michael
  */
 
 // Must match WS_HOST / WS_PORT in backend/protocol.py and connect-src in index.html.

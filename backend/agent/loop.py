@@ -1,6 +1,6 @@
 """The agent loop: send the request to OpenAI, run the tools it asks for, repeat until done.
 
-Owner: Experienced #1
+Owner: Jay
 Docs: https://platform.openai.com/docs/guides/function-calling
 Models: https://platform.openai.com/docs/models (pick one that supports tool calling)
 

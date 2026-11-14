@@ -7,7 +7,7 @@ One typed command:
     overlay --user_text--> server --> agent.loop.run_agent() --> tools
     overlay <--status / transcript / step-- server <-- agent
 
-Owner: Experienced #2
+Owner: Michael
 Docs (websockets 14+ asyncio API):
     https://websockets.readthedocs.io/en/stable/reference/asyncio/server.html
 """

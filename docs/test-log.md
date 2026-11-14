@@ -1,6 +1,6 @@
 # Test log
 
-Owner: Beginner. Run the hero tasks and write down what happened, every single time,
+Owner: Sarahi. Run the hero tasks and write down what happened, every single time,
 including failures. Failures are the most useful rows: they tell us what to fix.
 
 A **pass** means it worked start to finish without anyone touching the mouse or keyboard

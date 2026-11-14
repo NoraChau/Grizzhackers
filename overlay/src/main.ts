@@ -1,7 +1,7 @@
 /**
  * Electron main process: creates the small always-on-top overlay window.
  *
- * Owner: Experienced #2
+ * Owner: Michael
  * Docs: https://www.electronjs.org/docs/latest/api/browser-window
  *       https://www.electronjs.org/docs/latest/tutorial/security
  */

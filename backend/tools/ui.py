@@ -3,7 +3,7 @@
 This is the preferred way to act: find a button by its name, not by pixel position.
 Fallbacks, in order: keyboard_mouse.py (pyautogui), then screen.py (Gemini vision).
 
-Owner: Experienced #1
+Owner: Jay
 Docs: https://pywinauto.readthedocs.io/en/latest/ (backend="uia")
 Tip: the "Accessibility Insights for Windows" app or pywinauto's print_control_identifiers()
 shows the names and control types you can search for.

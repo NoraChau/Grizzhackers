@@ -3,7 +3,7 @@
 Round trip:
     agent --confirm_request--> overlay shows Yes / No --confirm_response--> agent
 
-Owner: Experienced #1 (the waiting part touches server.py, so pair with Experienced #2)
+Owner: Jay (the waiting part touches server.py, so pair with Michael)
 """
 
 from typing import Any

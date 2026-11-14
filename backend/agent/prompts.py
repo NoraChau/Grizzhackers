@@ -1,6 +1,6 @@
 """System prompt for the agent.
 
-Owner: Experienced #1
+Owner: Jay
 
 TODO(exp1): write SYSTEM_PROMPT. Things it should cover:
 - The user may not be able to use a mouse or keyboard comfortably. Do the work for them.

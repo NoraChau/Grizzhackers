@@ -1,6 +1,6 @@
 """Push-to-talk: hold a key to record the microphone, release it to stop.
 
-Owner: Experienced #2
+Owner: Michael
 Docs:
     Global hotkeys (keyboard): https://github.com/boppreh/keyboard
     Microphone (sounddevice):  https://python-sounddevice.readthedocs.io/

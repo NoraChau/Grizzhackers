@@ -8,7 +8,7 @@ Every tool is a small function that returns a short string the model can read,
 e.g. "Opened Notepad" or "No window titled 'Chrome' found". Errors are strings too: don't
 crash the loop; tell the model what went wrong so it can try something else.
 
-Owner: Experienced #1
+Owner: Jay
 Docs: https://platform.openai.com/docs/guides/function-calling
 """
 

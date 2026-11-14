@@ -1,6 +1,6 @@
 """Record a routine by watching the user once (hero task 4, "watch me").
 
-Owner: Intermediate
+Owner: Nora
 
 Design idea: record *what* happened (which app opened, which window and control was clicked,
 what text was typed), not raw x/y pixels. Pixel positions break as soon as a window moves.
@@ -17,14 +17,14 @@ from typing import Any
 def start_recording(name: str) -> str:
     """Start watching the user's actions for a routine called `name`. Returns a short status.
 
-    TODO(intermediate)
+    TODO(Nora)
     """
-    raise NotImplementedError("TODO(intermediate): start_recording")
+    raise NotImplementedError("TODO(Nora): start_recording")
 
 
 def stop_recording() -> list[dict[str, Any]]:
     """Stop watching and return the recorded steps (save them with memory.store.save_routine).
 
-    TODO(intermediate): decide the step format first and share it with Experienced #1.
+    TODO(Nora): decide the step format first and share it with Jay.
     """
-    raise NotImplementedError("TODO(intermediate): stop_recording")
+    raise NotImplementedError("TODO(Nora): stop_recording")

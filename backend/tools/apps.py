@@ -1,6 +1,6 @@
 """Tools: open, focus, list, and close desktop apps.
 
-Owner: Experienced #1
+Owner: Jay
 Docs: https://pywinauto.readthedocs.io/en/latest/getting_started.html (use backend="uia")
 """
 
