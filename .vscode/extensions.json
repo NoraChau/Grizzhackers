@@ -1,0 +1,36 @@
+{
+  "recommendations": [
+    // Python
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+
+    // JS/TS
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // Live Server
+    "ritwickdey.LiveServer",
+
+    // Data + Secrets
+    "mongodb.mongodb-vscode",
+    "mikestead.dotenv",
+
+    // Git
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+
+    // Inline errors
+    "usernamehw.errorlens",
+
+    // Vibe Coding
+    "anthropic.claude-code"
+  ],
+
+  // Claude Supremacy
+  "unwantedRecommendations": [
+    "github.copilot",
+    "github.copilot-chat"
+  ]
+}

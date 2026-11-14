@@ -1,0 +1,23 @@
+# Secrets
+secrets
+.env
+.env.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node / Electron
+node_modules/
+overlay/dist/
+
+# Logs
+*.log
+
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store

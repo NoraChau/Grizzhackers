@@ -1,0 +1,13 @@
+# Install inside the venv:  pip install -r requirements.txt
+openai          # agent: tool-calling LLM
+elevenlabs      # voice: speech-to-text + text-to-speech
+google-genai    # screen: Gemini vision ("what's on my screen?")
+exa-py          # web: search
+pymongo         # memory: MongoDB Atlas
+pywinauto       # hands: find and click Windows controls by name (UI Automation)
+pyautogui       # hands: mouse/keyboard fallback
+keyboard        # voice: global push-to-talk hotkey
+websockets      # server: talk to the overlay
+python-dotenv   # load keys from .env
+sounddevice     # voice: record the mic, play audio
+mss             # screen: fast screenshots
