@@ -1,36 +1,46 @@
-"""Tools: raw keyboard and mouse (pyautogui). Fallback when ui.py can't find a control.
+"""Type text, press shortcuts, click coordinates: the fallback when UIA can't do it.
 
 Owner: Jay
-Docs: https://pyautogui.readthedocs.io/en/latest/
 
-Gotchas:
-- Keep pyautogui's FAILSAFE on (slam the mouse into a screen corner to abort). Mention it in the demo.
-- Display scaling (125%, 150%) can make screenshot pixels differ from click coordinates.
-  Test on the demo laptop.
-- These act on whatever window has focus. Focus the right window first (apps.focus_window).
+Docs:
+  - pyautogui 0.9.54: https://pyautogui.readthedocs.io/en/latest/  (hotkey, write, click)
+  - keyboard 0.13.5: https://github.com/boppreh/keyboard  (write handles non-English characters)
 """
 
 
 def type_text(text: str) -> str:
-    """Type text into whatever window has focus.
+    """Type `text` into whatever has keyboard focus. Returns e.g. "typed 12 characters".
 
-    TODO(exp1)
+    Gotchas:
+      - pyautogui.write() only types keys on a US keyboard (no é, ñ, emoji).
+        keyboard.write() handles Unicode.
+      - If you use pywinauto's type_keys() instead, the characters + ^ % ~ ( ) { } are
+        special keys there. Escape them or the text comes out wrong.
+
+    TODO(Jay): implement.
     """
-    raise NotImplementedError("TODO(exp1): type_text")
+    return "error: type_text is not implemented yet"
 
 
-def press_keys(keys: list[str]) -> str:
-    """Press a key combination together, e.g. ["ctrl", "s"].
+def press_keys(keys: str) -> str:
+    """Press a shortcut like "ctrl+s", "alt+tab", or "enter". Returns e.g. "pressed ctrl+s".
 
-    Some combos are destructive (ctrl+w, alt+f4). Check them in agent/safety.py.
-    TODO(exp1)
+    Destructive shortcuts (alt+f4, ctrl+w, ctrl+enter to send) must pass the loop's
+    needs_confirmation() check first.
+
+    TODO(Jay): implement.
     """
-    raise NotImplementedError("TODO(exp1): press_keys")
+    return "error: press_keys is not implemented yet"
 
 
 def click_at(x: int, y: int) -> str:
-    """Click at screen coordinates. Last resort, after ui.click_control fails.
+    """Left-click the screen at pixel (x, y). Used by the vision fallback, not a model tool.
 
-    TODO(exp1)
+    Keep pyautogui.FAILSAFE on (moving the mouse into a corner aborts); catch
+    pyautogui.FailSafeException and return "error: ...".
+    Display scaling (125%, 150%) can make screenshot pixels differ from click pixels:
+    test on a laptop with scaling turned on.
+
+    TODO(Jay): implement.
     """
-    raise NotImplementedError("TODO(exp1): click_at")
+    return "error: click_at is not implemented yet"

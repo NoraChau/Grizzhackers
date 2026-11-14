@@ -1,5 +1,1 @@
-"""Backend for the desktop companion.
-
-Always run from the repo root so `backend.` imports work:
-    python -m backend.server
-"""
+"""GrizzHelper backend. Run things from the repo root as modules, e.g. `python -m backend.server`."""

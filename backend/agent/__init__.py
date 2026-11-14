@@ -1,4 +1,1 @@
-"""The agent: OpenAI tool-calling loop, system prompt, and safety confirmations.
-
-Owner: Jay
-"""
+"""The agent: gpt-oss plans the request and calls tools in a loop. Owner: Jay."""

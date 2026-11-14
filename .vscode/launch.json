@@ -6,7 +6,7 @@
       "name": "Backend: server",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/backend/server.py",
+      "module": "backend.server",
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal"

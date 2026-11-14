@@ -1,13 +1,16 @@
-# Install inside the venv:  pip install -r requirements.txt
-openai          # agent: tool-calling LLM
-elevenlabs      # voice: speech-to-text + text-to-speech
-google-genai    # screen: Gemini vision ("what's on my screen?")
-exa-py          # web: search
-pymongo         # memory: MongoDB Atlas
-pywinauto       # hands: find and click Windows controls by name (UI Automation)
-pyautogui       # hands: mouse/keyboard fallback
-keyboard        # voice: global push-to-talk hotkey
-websockets      # server: talk to the overlay
-python-dotenv   # load keys from .env
-sounddevice     # voice: record the mic, play audio
-mss             # screen: fast screenshots
+# GrizzHelper backend (Windows 11, Python 3.11+)
+# Install with the venv active:  python -m pip install -r requirements.txt
+
+openai          # gpt-oss on our vLLM server (and the Grok fallback), Chat Completions + tool calling
+google-genai    # Gemini vision (last resort, when UI Automation can't find a control)
+elevenlabs      # speech-to-text + text-to-speech
+pywinauto       # Windows UI Automation: find and click controls by name
+pyautogui       # mouse/keyboard fallback
+keyboard        # global push-to-talk hotkey, Unicode typing
+websockets      # bridge between backend and the Electron mascot
+python-dotenv   # load .env
+sounddevice     # microphone recording + audio playback
+mss             # screenshots
+
+# Add only when Exa credits exist:
+# exa-py

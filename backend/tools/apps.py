@@ -1,44 +1,31 @@
-"""Tools: open, focus, list, and close desktop apps.
+"""Open Windows apps.
 
 Owner: Jay
-Docs: https://pywinauto.readthedocs.io/en/latest/getting_started.html (use backend="uia")
+
+Docs:
+  - pywinauto 0.6.9: https://pywinauto.readthedocs.io/en/latest/
+  - subprocess: https://docs.python.org/3/library/subprocess.html
 """
+
+# Friendly name the model says -> what to launch. Only apps in this dict can be opened.
+# Never pass the model's text straight to a shell: that is how prompt injection runs commands.
+APPS: dict[str, str] = {
+    "notepad": "notepad.exe",
+    # TODO(Jay): calculator, file explorer, paint, ...
+}
 
 
 def open_app(name: str) -> str:
-    """Start an app by friendly name ("notepad", "calculator") and wait until its window is ready.
+    """Open the app called `name` (e.g. "notepad") and wait until its window is visible.
 
-    Returns e.g. "Opened Notepad" or "I don't know an app called 'xyz'".
+    Returns a short result for the model, e.g. "opened Notepad", or
+    "error: I don't know an app called 'xyz'".
 
-    TODO(exp1):
-    - Map friendly names to what to launch.
-    - Windows 11 gotcha: Calculator and the new Notepad are Store apps. The process you start
-      can hand off to another process and exit, so find the window by its title instead of
-      trusting the process id you started.
+    Windows 11 gotcha: notepad.exe and calc.exe start a stub process that hands off to the
+    Store version of the app and exits, so pywinauto's Application().start(...) loses track
+    of the window. Launch the exe, then find the window separately with
+    Desktop(backend="uia").window(title_re=...) and .wait("visible", timeout=10).
+
+    TODO(Jay): implement.
     """
-    raise NotImplementedError("TODO(exp1): open_app")
-
-
-def focus_window(title: str) -> str:
-    """Bring the window whose title contains `title` to the front.
-
-    TODO(exp1)
-    """
-    raise NotImplementedError("TODO(exp1): focus_window")
-
-
-def list_windows() -> str:
-    """Return the titles of visible top-level windows, one per line (helps the model pick one).
-
-    TODO(exp1)
-    """
-    raise NotImplementedError("TODO(exp1): list_windows")
-
-
-def close_app(title: str) -> str:
-    """Close the window whose title contains `title`.
-
-    DESTRUCTIVE: may lose unsaved work, so it is listed in agent/safety.py DESTRUCTIVE_TOOLS.
-    TODO(exp1)
-    """
-    raise NotImplementedError("TODO(exp1): close_app")
+    return "error: open_app is not implemented yet"

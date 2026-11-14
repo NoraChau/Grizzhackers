@@ -1,0 +1,13 @@
+{
+  "name": "grizzhelper-mascot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GrizzHelper bear mascot window (Electron, plain JavaScript).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "44.10.0"
+  }
+}

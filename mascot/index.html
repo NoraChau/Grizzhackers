@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- connect-src must match WS_URL in protocol.js -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src ws://127.0.0.1:8765"
+    />
+    <title>GrizzHelper</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="mascot" class="mascot" data-state="idle">
+      <div id="bubble" class="bubble" role="status" aria-live="polite">
+        Hi! I'm GrizzHelper. What can I do for you?
+      </div>
+
+      <div id="confirm" class="confirm" hidden>
+        <button id="confirm-yes" type="button">Yes</button>
+        <button id="confirm-no" type="button">No</button>
+      </div>
+
+      <!-- TODO(Sarahi): replace the emoji with the bear art, e.g. <img src="assets/idle.png" alt="" /> -->
+      <div id="bear" class="bear" aria-hidden="true">🐻</div>
+
+      <input
+        id="request"
+        class="request"
+        type="text"
+        placeholder="Type a request and press Enter"
+        autocomplete="off"
+        aria-label="Request for GrizzHelper"
+      />
+    </main>
+
+    <script src="protocol.js"></script>
+    <script src="renderer.js"></script>
+  </body>
+</html>

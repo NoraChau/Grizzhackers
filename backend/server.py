@@ -1,55 +1,57 @@
-"""WebSocket server: the bridge between the overlay (Electron window) and the agent.
-
-Run from the repo root:
-    python -m backend.server
-
-One typed command:
-    overlay --user_text--> server --> agent.loop.run_agent() --> tools
-    overlay <--status / transcript / step-- server <-- agent
+"""WebSocket server: the bridge between the mascot window and the agent.
 
 Owner: Michael
-Docs (websockets 14+ asyncio API):
-    https://websockets.readthedocs.io/en/stable/reference/asyncio/server.html
+
+Run from the repo root with the venv active:
+    python -m backend.server
+
+Docs (websockets 17.4, asyncio API):
+https://websockets.readthedocs.io/en/stable/reference/asyncio/server.html
+    from websockets.asyncio.server import serve
+    async with serve(handler, protocol.WS_HOST, protocol.WS_PORT) as server:
+        await server.serve_forever()
+
+What it does:
+  - mascot sends USER_TEXT -> send STATE "thinking" -> run the agent -> send REPLY
+    -> speak it (STATE "talking") -> STATE "idle"
+  - push-to-talk (voice/hotkey.py) -> STT -> send TRANSCRIPT -> same path as USER_TEXT
+  - the agent wants to do something destructive -> send CONFIRM_REQUEST (STATE "confirm")
+    and wait for the CONFIRM_RESPONSE with the same id
+
+Threads gotcha: agent.loop.run_agent is normal blocking code. Run it with
+`await asyncio.to_thread(run_agent, ...)` so the server can still receive the user's yes/no
+while the agent waits. The confirm callback then runs on that worker thread: use
+asyncio.run_coroutine_threadsafe(ask_mascot(question), loop).result() to wait for the answer.
+
+Security:
+  - Bind to 127.0.0.1 only (protocol.WS_HOST). This server can drive the whole PC.
+  - Any web page open in the user's browser can ALSO connect to ws://127.0.0.1. Check the
+    Origin header (serve(..., origins=[...])) so only the mascot window gets in: log the
+    Origin the mascot sends, then allow only that.
 """
 
 import asyncio
 import logging
 
-from backend.protocol import WS_HOST, WS_PORT
-
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
-async def handle_connection(websocket) -> None:  # websocket: websockets ServerConnection
-    """Handle one overlay connection: read messages until it disconnects.
+async def handler(websocket) -> None:
+    """Handle one mascot connection: read messages, dispatch by type, send replies.
 
-    TODO(exp2):
-    - Loop over incoming messages and decode them with protocol.decode().
-    - "user_text"        -> run the agent (backend.agent.loop.run_agent)
-    - "confirm_response" -> hand the answer to the waiting confirm (backend.agent.safety)
-    - "cancel"           -> stop the running agent task
-    - Send replies with protocol.encode().
+    TODO(Michael): for each raw message: protocol.decode -> act on USER_TEXT /
+    CONFIRM_RESPONSE. Bad message -> send an ERROR message back, keep the connection open.
     """
-    raise NotImplementedError("TODO(exp2): handle_connection")
+    raise NotImplementedError("TODO(Michael): handler")
 
 
 async def main() -> None:
-    """Load .env, start push-to-talk, and serve WebSocket connections forever.
+    """Load .env, set up logging, start push-to-talk, and serve WebSockets forever.
 
-    TODO(exp2):
-    - Call load_dotenv() (python-dotenv) first so os.environ has the API keys.
-    - Serve on WS_HOST:WS_PORT.
-    - SECURITY: any web page open in a browser can connect to ws://127.0.0.1. Since this server
-      controls the computer, limit who can connect: see the `origins` argument of serve(),
-      or have the overlay send a secret token as its first message.
-    - Start backend.voice.push_to_talk.start_listening().
+    TODO(Michael): implement (see the docs snippet at the top of this file).
     """
-    raise NotImplementedError(f"TODO(exp2): start the server on {WS_HOST}:{WS_PORT}")
+    raise NotImplementedError("TODO(Michael): server main")
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
     asyncio.run(main())

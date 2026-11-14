@@ -1,14 +1,22 @@
-"""Speech-to-text with ElevenLabs.
+"""Speech-to-text with ElevenLabs: recorded audio -> the words the user said.
 
 Owner: Michael
-Docs: https://elevenlabs.io/docs/api-reference/speech-to-text/convert
+
+Docs:
+  - API: https://elevenlabs.io/docs/api-reference/speech-to-text/convert
+  - Python SDK (elevenlabs 2.78): https://github.com/elevenlabs/elevenlabs-python
+    client.speech_to_text.convert(file=..., model_id=...)
+Check the docs for the current speech-to-text model_id; don't guess.
+Use ONE shared ElevenLabs(api_key=...) client for stt.py and tts.py.
 """
 
 
-def transcribe(audio_wav: bytes) -> str:
-    """Send recorded audio to ElevenLabs and return what the user said, as text.
+def transcribe(wav_bytes: bytes) -> str:
+    """Return the text spoken in `wav_bytes`, or "" if nothing was heard.
 
-    Return "" for silence or noise so the agent isn't called with nothing.
-    TODO(exp2): read ELEVENLABS_API_KEY from the environment; never print it.
+    On failure, log it and return "" so the mascot can say "Sorry, I didn't catch that"
+    instead of crashing.
+
+    TODO(Michael): implement.
     """
-    raise NotImplementedError("TODO(exp2): transcribe")
+    raise NotImplementedError("TODO(Michael): transcribe")

@@ -1,36 +1,32 @@
-"""Tools: work with controls inside a window by name, using Windows UI Automation (pywinauto).
-
-This is the preferred way to act: find a button by its name, not by pixel position.
-Fallbacks, in order: keyboard_mouse.py (pyautogui), then screen.py (Gemini vision).
+"""Click buttons and menus by name with Windows UI Automation (UIA).
 
 Owner: Jay
-Docs: https://pywinauto.readthedocs.io/en/latest/ (backend="uia")
-Tip: the "Accessibility Insights for Windows" app or pywinauto's print_control_identifiers()
-shows the names and control types you can search for.
+
+UIA is the accessibility API screen readers use. Every control has a name ("Save"), a
+control type ("Button"), and a parent window. Far more reliable than clicking pixels.
+
+Order of attempts (CLAUDE.md): pywinauto UIA first -> keyboard_mouse fallback ->
+Gemini vision (screen.locate_on_screen) as the last resort.
+
+Docs (pywinauto 0.6.9): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+  - Desktop(backend="uia").window(title_re=...) finds a top-level window
+  - .child_window(title=..., control_type=...) finds a control inside it; .click_input() clicks
+  - .print_control_identifiers() dumps every control: use it while developing to learn names
+Tip: Accessibility Insights for Windows (free, from Microsoft) shows the UIA name of
+whatever you hover: https://accessibilityinsights.io/docs/windows/overview/
 """
 
 
-def read_window(window_title: str) -> str:
-    """List the clickable / typeable controls in a window (name + control type), one per line.
+def click_control(name: str, control_type: str = "", window_title: str = "") -> str:
+    """Click the control called `name` (e.g. "File", "Save") in a window.
 
-    The model calls this to "look" at a window before clicking. Keep the output short:
-    skip unnamed controls and cap the number of lines.
-    TODO(exp1)
+    window_title: part of the window's title, e.g. "Notepad". Empty = the window in front.
+    control_type: narrows the search: "Button", "MenuItem", "Edit", "ListItem", "TabItem", ...
+
+    If UIA can't find it, fall back to screen.locate_on_screen(name) and
+    keyboard_mouse.click_at(x, y).
+    Returns e.g. "clicked 'Save' (Button)" or "error: no control named 'Save' in Notepad".
+
+    TODO(Jay): implement.
     """
-    raise NotImplementedError("TODO(exp1): read_window")
-
-
-def click_control(window_title: str, control_name: str) -> str:
-    """Click a button, menu item, or tab by its visible name.
-
-    TODO(exp1)
-    """
-    raise NotImplementedError("TODO(exp1): click_control")
-
-
-def type_into(window_title: str, text: str) -> str:
-    """Type text into the main text box of a window (e.g. Notepad's editor).
-
-    TODO(exp1)
-    """
-    raise NotImplementedError("TODO(exp1): type_into")
+    return "error: click_control is not implemented yet"

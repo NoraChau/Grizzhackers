@@ -1,36 +1,41 @@
-"""Tools: save, read, and delete text notes.
+"""Open folders and files: "Open my Downloads folder and open the newest PDF".
 
-Owner: UNASSIGNED (not in CLAUDE.md's ownership table yet; decide as a team)
+Owner: Nora
 
-Security: the model chooses the note name. Keep every file inside NOTES_DIR and reject names
-with "..", "/" or "\\" so a bad instruction can't write or delete files elsewhere on the computer.
+Docs:
+  - pathlib: https://docs.python.org/3/library/pathlib.html  (Path.home(), .glob(), .stat().st_mtime)
+  - os.startfile, which opens with the default app like a double-click:
+    https://docs.python.org/3/library/os.html#os.startfile
 """
 
 from pathlib import Path
 
-NOTES_DIR = Path.home() / "Documents" / "Companion Notes"
+# Folders the model may name. Keep it to the user's own folders.
+# Gotcha: OneDrive often moves Documents/Desktop/Pictures to ~/OneDrive/...; check each laptop.
+FOLDERS: dict[str, Path] = {
+    "downloads": Path.home() / "Downloads",
+    # TODO(Nora): documents, desktop, pictures
+}
+
+# Only these may be opened. Never .exe, .bat, .cmd, .ps1, .lnk, .msi, ...: "open the newest
+# file in Downloads" must never run a downloaded program.
+SAFE_EXTENSIONS: set[str] = {".pdf", ".txt"}  # TODO(Nora): add images, .docx, ...
 
 
-def save_note(title: str, text: str) -> str:
-    """Save `text` to NOTES_DIR/<title>.txt (create the folder if needed). Return where it was saved.
+def open_folder(name: str) -> str:
+    """Open FOLDERS[name] in File Explorer. Returns e.g. "opened Downloads".
 
-    TODO(unassigned)
+    TODO(Nora): implement. Unknown name -> "error: ..." listing the folders you do know.
     """
-    raise NotImplementedError("TODO(unassigned): save_note")
+    return "error: open_folder is not implemented yet"
 
 
-def read_note(title: str) -> str:
-    """Return the text of a saved note, or a short message if it doesn't exist.
+def open_newest_file(folder: str, extension: str) -> str:
+    """Open the most recently modified file with `extension` in FOLDERS[folder].
 
-    TODO(unassigned)
+    e.g. open_newest_file("downloads", ".pdf") -> "opened report.pdf".
+    Refuse anything not in SAFE_EXTENSIONS. No matching file -> "error: no PDF files in Downloads".
+
+    TODO(Nora): implement.
     """
-    raise NotImplementedError("TODO(unassigned): read_note")
-
-
-def delete_note(title: str) -> str:
-    """Delete a saved note.
-
-    DESTRUCTIVE: listed in agent/safety.py DESTRUCTIVE_TOOLS, so the user confirms first.
-    TODO(unassigned)
-    """
-    raise NotImplementedError("TODO(unassigned): delete_note")
+    return "error: open_newest_file is not implemented yet"
