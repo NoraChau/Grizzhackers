@@ -1,31 +1,54 @@
-"""Open Windows apps.
+import os
+import subprocess
+from pathlib import Path
 
-Owner: Jay
-
-Docs:
-  - pywinauto 0.6.9: https://pywinauto.readthedocs.io/en/latest/
-  - subprocess: https://docs.python.org/3/library/subprocess.html
-"""
+from pywinauto import Desktop
+from pywinauto.timings import TimeoutError as UiaTimeout
 
 # Friendly name the model says -> what to launch. Only apps in this dict can be opened.
 # Never pass the model's text straight to a shell: that is how prompt injection runs commands.
-APPS: dict[str, str] = {
-    "notepad": "notepad.exe",
-    # TODO(Jay): calculator, file explorer, paint, ...
+APPS: dict[str, tuple[str, str]] = {
+    "notepad": ("notepad.exe", r".*Notepad$"),
 }
 
-
 def open_app(name: str) -> str:
-    """Open the app called `name` (e.g. "notepad") and wait until its window is visible.
+  try:
+    key = name.strip().lower()
 
-    Returns a short result for the model, e.g. "opened Notepad", or
-    "error: I don't know an app called 'xyz'".
+    if (not APPS.get(key)) :
+      return f"Error: I don't know an app called {name}."
 
-    Windows 11 gotcha: notepad.exe and calc.exe start a stub process that hands off to the
-    Store version of the app and exits, so pywinauto's Application().start(...) loses track
-    of the window. Launch the exe, then find the window separately with
-    Desktop(backend="uia").window(title_re=...) and .wait("visible", timeout=10).
+    target, title_pattern = APPS[key]
+    desk = Desktop(backend="uia")
+    spec = desk.window(title_re=title_pattern, control_type="Window", found_index=0)
 
-    TODO(Jay): implement.
-    """
-    return "error: open_app is not implemented yet"
+    if (spec.exists()):
+      try:
+        spec.wait("visible", timeout=10)
+      except UiaTimeout:
+        pass
+      spec.wrapper_object().set_focus()
+      return f"{name} was already open, focused the window."
+
+    try:
+      path = Path(target)
+      if (path.is_file() or path.is_dir()):
+        os.startfile(target)
+      else:
+        subprocess.Popen([target])
+
+    except OSError as e:
+      return f"Error: Couldn't launch {name}: {e}"
+
+    try:
+      spec.wait("visible", timeout=10)
+    except UiaTimeout:
+      return f"Error: Started {name}, but its window never appeared."
+
+    win = spec.wrapper_object()
+    win.set_focus()
+
+    return f"Opened {name}"
+
+  except Exception as e:  # noqa: BLE001
+    return f"Error: open_app failed: {e}"

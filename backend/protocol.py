@@ -7,6 +7,7 @@ This list must match mascot/protocol.js. Add a type here -> add it there too.
 Owner: Michael
 """
 
+import json
 from typing import Any, Literal, TypedDict
 
 # Where the backend listens. mascot/protocol.js (WS_URL) and the CSP in mascot/index.html
@@ -37,17 +38,32 @@ class Message(TypedDict):
 def encode(type_: str, payload: dict[str, Any]) -> str:
     """Build the JSON string to send over the WebSocket.
 
-    TODO(Michael): json.dumps a dict with "type" and "payload".
+    json.dumps a dict with "type" and "payload".
     Docs: https://docs.python.org/3/library/json.html
     """
-    raise NotImplementedError("TODO(Michael): protocol.encode")
+    
+    message = {"type": type_, "payload": payload}
+    return json.dumps(message)
 
 
 def decode(raw: str) -> Message:
     """Parse a JSON string from the mascot into a Message.
 
-    TODO(Michael): json.loads, then check it has "type" (a str) and "payload" (a dict).
+    json.loads, then check it has "type" (a str) and "payload" (a dict).
     Bad input should raise ValueError so server.py can reply with an ERROR message
     instead of crashing.
     """
-    raise NotImplementedError("TODO(Michael): protocol.decode")
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"not valid JSON: {exc}") from exc
+
+    if not isinstance(data, dict):
+        raise ValueError("message must be a JSON object")
+    if not isinstance(data.get("type"), str):
+        raise ValueError('message needs a "type" string')
+    if not isinstance(data.get("payload"), dict):
+        raise ValueError('message needs a "payload" object')
+
+    return {"type": data["type"], "payload": data["payload"]}
