@@ -118,7 +118,11 @@ def run_agent(user_text: str, confirm: ConfirmFn, set_state: StateFn) -> str:
                              "reasoning": getattr(msg, "reasoning", None)})
 
             if (not msg.tool_calls):
-                return msg.content or "Done!"
+                if (msg.content):
+                    return msg.content
+                # Empty answer (no text, no tools): ask again rather than claim it's done.
+                messages.pop()
+                continue
 
             for call in msg.tool_calls:
                 name = call.function.name

@@ -49,9 +49,10 @@ logger = logging.getLogger(__name__)
 # How long to wait for the user to press Yes/No before treating it as "no".
 CONFIRM_TIMEOUT_S = 60
 
-# None = allow any Origin (just log it). Set to e.g. ["file://"] once you know what the
-# mascot window sends. websockets rejects connections whose Origin isn't in the list.
-ALLOWED_ORIGINS: list[str | None] | None = None
+# Only the mascot may connect: its window sends Origin "file://" (seen in the log).
+# Web pages send "http(s)://..." and a file opened in a browser sends "null", so both are
+# rejected. websockets refuses any connection whose Origin isn't in this list.
+ALLOWED_ORIGINS: list[str | None] | None = ["file://"]
 
 
 async def send(websocket: ServerConnection, type_: str, payload: dict[str, Any]) -> None:

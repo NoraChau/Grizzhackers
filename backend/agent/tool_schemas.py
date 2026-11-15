@@ -23,7 +23,7 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
         "type": "function",
         "function": {
             "name": "open_app",
-            "description": "Open a Windows app by name, or focus it if it's already open.",
+            "description": "Open a Windows app by name, or focus it if it's already open. Notepad always gets a new blank tab.",
             "parameters": {
                 "type": "object",
                 "properties": {"name": {"type": "string", "enum": list(apps.APPS)}},
@@ -89,15 +89,16 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
     {
         "type": "function",
         "function": {
-            "name": "open_newest_file",
-            "description": "Open the most recent file of one type in a folder, e.g. the newest PDF in downloads.",
+            "name": "open_file",
+            "description": "Open a file in one of the user's folders, by part of its name, or the newest one if no name is given.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "folder": {"type": "string", "enum": list(files.FOLDERS)},
-                    "extension": {"type": "string", "enum": sorted(files.SAFE_EXTENSIONS)},
+                    "name": {"type": "string", "description": "Part of the file name the user said, or \"\" for the newest file."},
+                    "extension": {"type": "string", "enum": ["any", *sorted(files.SAFE_EXTENSIONS)]},
                 },
-                "required": ["folder", "extension"],
+                "required": ["folder", "name", "extension"],
                 "additionalProperties": False,
             },
         },
@@ -111,5 +112,5 @@ TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {
     "press_keys": keyboard_mouse.press_keys,
     "describe_screen": screen.describe_screen,
     "open_folder": files.open_folder,
-    "open_newest_file": files.open_newest_file,
+    "open_file": files.open_file,
 }

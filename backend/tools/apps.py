@@ -1,5 +1,8 @@
+import ctypes
 import os
+import time
 
+import keyboard
 from pywinauto import Desktop
 from pywinauto.timings import TimeoutError as UiaTimeout
 
@@ -22,7 +25,55 @@ APPS: dict[str, tuple[str, str]] = {
     "powerpoint": ("powerpnt.exe", r"^(.* - )?PowerPoint$"),
 }
 
+MASCOT_TITLE = "GrizzHelper"  # the mascot window's <title> in mascot/index.html
+
+# The window open_app focused last. Clicking the mascot (typing a request, pressing Yes on a
+# confirm) moves keyboard focus to the mascot, so type_text/press_keys re-focus this first.
+# Without it, "close calculator" -> confirm -> alt+f4 closed the MASCOT.
+_last_window = None
+
+
+def _foreground_title() -> str:
+  user32 = ctypes.windll.user32
+  hwnd = user32.GetForegroundWindow()
+  buf = ctypes.create_unicode_buffer(512)
+  user32.GetWindowTextW(hwnd, buf, 512)
+  return buf.value
+
+
+def focus_last_app() -> str | None:
+  """Put focus back on the app open_app last focused. Returns an error string, or None if OK."""
+  win = _last_window
+  if win is not None and ctypes.windll.user32.IsWindow(win.handle):
+    try:
+      win.set_focus()
+      time.sleep(0.2)
+      return None
+    except Exception:  # noqa: BLE001 - window is closing: fall through to the check below
+      pass
+  if _foreground_title() == MASCOT_TITLE:
+    return "Error: No app is focused. Use open_app first."
+  return None
+
+
+def _new_notepad_tab(spec) -> None:
+  """Win11 Notepad restores old tabs: wait until it's ready, then start a blank tab.
+
+  Typing while it's still restoring tabs dropped letters ("buy milk" -> "buy lllk").
+  """
+  try:
+    doc = spec.child_window(control_type="Document", found_index=0)
+    doc.wait("ready", timeout=5)
+    if (not doc.wrapper_object().window_text().strip()):
+      return  # already a blank tab: the model calling open_app twice mustn't pile up tabs
+  except Exception:  # noqa: BLE001 - still try the new tab
+    pass
+  keyboard.send("ctrl+n")
+  time.sleep(0.5)
+
+
 def open_app(name: str) -> str:
+  global _last_window
   try:
     key = name.strip().lower()
 
@@ -38,8 +89,12 @@ def open_app(name: str) -> str:
         spec.wait("visible", timeout=10)
       except UiaTimeout:
         pass
-      spec.wrapper_object().set_focus()
-      return f"{name} was already open, focused the window."
+      _last_window = spec.wrapper_object()
+      _last_window.set_focus()
+      if (key == "notepad"):
+        _new_notepad_tab(spec)
+        return "notepad was already open, now on a blank tab."
+      return f"{key} was already open, focused the window."
 
     try:
       # os.startfile = "Run" box / double-click. Unlike subprocess.Popen it also finds apps
@@ -53,10 +108,13 @@ def open_app(name: str) -> str:
     except UiaTimeout:
       return f"Error: Started {name}, but its window never appeared."
 
-    win = spec.wrapper_object()
-    win.set_focus()
+    _last_window = spec.wrapper_object()
+    _last_window.set_focus()
+    if (key == "notepad"):
+      _new_notepad_tab(spec)
+      return "Opened notepad on a blank tab."
 
-    return f"Opened {name}"
+    return f"Opened {key}"
 
   except Exception as e:  # noqa: BLE001
     return f"Error: open_app failed: {e}"

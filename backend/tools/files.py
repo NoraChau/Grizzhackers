@@ -1,4 +1,4 @@
-"""Open folders and files: "Open my Downloads folder and open the newest PDF".
+"""Open folders and files: "Open my Downloads folder and open the newest PDF" / "...my resume".
 
 Owner: Nora
 
@@ -10,6 +10,7 @@ Docs:
     https://docs.python.org/3/library/winreg.html
 """
 
+import difflib
 import os
 import winreg
 from pathlib import Path
@@ -51,6 +52,9 @@ SAFE_EXTENSIONS: set[str] = {
     ".webp",
     ".mp3",
     ".mp4",
+    ".md",
+    ".xlsx",
+    ".pptx",
 }
 
 
@@ -73,16 +77,28 @@ def open_folder(name: str) -> str:
     return f"opened {key}"
 
 
-def open_newest_file(folder: str, extension: str) -> str:
-    """Open the most recently modified file with `extension` in FOLDERS[folder].
+def _simplify(text: str) -> str:
+    """'Resume-J-sV3.pdf' -> 'resumejsv3pdf': ignore case, spaces and punctuation."""
+    return "".join(ch for ch in text.lower() if ch.isalnum())
 
-    e.g. open_newest_file("downloads", ".pdf") -> "opened report.pdf".
-    Refuse anything not in SAFE_EXTENSIONS. No matching file -> "error: no .pdf files in downloads".
+
+def open_file(folder: str, name: str, extension: str) -> str:
+    """Open a file in FOLDERS[folder]: the newest one whose name contains `name`.
+
+    name "" = any name, so ("downloads", "", ".pdf") opens the newest PDF.
+    extension "any" = any type in SAFE_EXTENSIONS (people often don't know the type).
+    Names match loosely because speech-to-text rarely gets punctuation right.
+    Refuse anything not in SAFE_EXTENSIONS. No match -> "error: ..." with close names.
     """
     # Accept "pdf", "PDF" and ".pdf" alike, then check against the allow-list.
-    ext = "." + extension.strip().lower().lstrip(".")
-    if ext not in SAFE_EXTENSIONS:
-        return f"error: I can't open {ext} files. I can open: {', '.join(sorted(SAFE_EXTENSIONS))}"
+    ext = extension.strip().lower()
+    if ext == "any":
+        allowed = SAFE_EXTENSIONS
+    else:
+        ext = "." + ext.lstrip(".")
+        if ext not in SAFE_EXTENSIONS:
+            return f"error: I can't open {ext} files. I can open: {', '.join(sorted(SAFE_EXTENSIONS))}"
+        allowed = {ext}
 
     key = folder.strip().lower()
     folder_path = FOLDERS.get(key)
@@ -91,13 +107,22 @@ def open_newest_file(folder: str, extension: str) -> str:
     if not folder_path.exists():
         return f"error: the {key} folder doesn't exist on this PC."
 
-    files = [p for p in folder_path.glob(f"*{ext}") if p.is_file()]
-    newest = max(files, key=lambda p: p.stat().st_mtime, default=None)
-    if newest is None:
-        return f"error: no {ext} files in {key}"
+    candidates = [p for p in folder_path.iterdir() if p.is_file() and p.suffix.lower() in allowed]
+    wanted = _simplify(name)
+    matches = [p for p in candidates if wanted in _simplify(p.name)]
+    if not matches:
+        if not wanted:
+            return f"error: no {ext if ext != 'any' else 'openable'} files in {key}"
+        by_simple = {_simplify(p.stem): p.name for p in candidates}
+        close = difflib.get_close_matches(wanted, by_simple, n=3, cutoff=0.5)
+        hint = f" Did you mean: {', '.join(by_simple[c] for c in close)}?" if close else ""
+        return f"error: no file named like '{name}' in {key}.{hint}"
 
+    newest = max(matches, key=lambda p: p.stat().st_mtime)
     try:
         os.startfile(newest)
     except OSError as e:
         return f"error: couldn't open {newest.name}: {e}"
+    if wanted and len(matches) > 1:
+        return f"opened {newest.name} (the newest of {len(matches)} matching files)"
     return f"opened {newest.name}"
