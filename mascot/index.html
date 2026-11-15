@@ -2,27 +2,59 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- connect-src must match WS_URL in protocol.js -->
+    <!-- connect-src: ws:// must match WS_URL in protocol.js; 'self' lets MediaPipe load its
+         local .wasm and model files. 'wasm-unsafe-eval' lets the WebAssembly run (it does NOT
+         allow eval() of JavaScript). media-src: the webcam stream for hands-free mode. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src ws://127.0.0.1:8765"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:8765; media-src 'self' mediastream: blob:"
     />
     <title>GrizzHelper</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main id="mascot" class="mascot" data-state="idle">
-      <button id="close" class="close" type="button" title="Close GrizzHelper" aria-label="Close GrizzHelper">
-        <span aria-hidden="true">×</span>
-      </button>
+      <div class="top-bar">
+        <!-- Hands-free: point with your head, hold on a button to press it. Also F8.
+             Turning it OFF by head takes a longer hold (4 s) so it can't happen by accident. -->
+        <button
+          id="hands-free"
+          class="hands-free-toggle"
+          type="button"
+          aria-pressed="false"
+          title="Hands-free mode (F8)"
+          data-dwell
+          data-dwell-ms="4000"
+        >
+          <span aria-hidden="true">👁</span>
+          <span id="hands-free-label">Hands-free</span>
+        </button>
+        <!-- Mouse: closes right away. Hands-free: asks first (see #close-confirm), because a
+             head user who closed it by accident couldn't reopen it. -->
+        <button
+          id="close"
+          class="close"
+          type="button"
+          title="Close GrizzHelper"
+          aria-label="Close GrizzHelper"
+          data-dwell
+        >
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+
+      <div id="close-confirm" class="confirm" hidden>
+        <button id="close-yes" type="button" data-dwell>Yes, close</button>
+        <button id="close-no" type="button" data-dwell>Cancel</button>
+      </div>
 
       <div id="bubble" class="bubble" role="status" aria-live="polite">
         Hi! I'm GrizzHelper. What can I do for you?
       </div>
 
       <div id="confirm" class="confirm" hidden>
-        <button id="confirm-yes" type="button">Yes</button>
-        <button id="confirm-no" type="button">No</button>
+        <button id="confirm-yes" type="button" data-dwell>Yes</button>
+        <button id="confirm-no" type="button" data-dwell>No</button>
       </div>
 
       <!-- TODO(Sarahi): replace the emoji with the bear art, e.g. <img src="assets/idle.png" alt="" /> -->
@@ -43,16 +75,25 @@
           <span>Enter</span>
         </button>
         <!-- One click starts recording, the next click stops and sends it. -->
-        <button id="mic" class="row-btn mic" type="button" aria-pressed="false" title="Start talking">
+        <button id="mic" class="row-btn mic" type="button" aria-pressed="false" title="Start talking" data-dwell>
           <span class="mic-icon" aria-hidden="true">🎤</span>
           <span id="mic-label" class="mic-label">Talk</span>
         </button>
       </div>
 
       <p id="hint" class="hint">Press <kbd>F9</kbd> for speech to text</p>
+      <p id="hands-free-hint" class="hint hands-free-only">
+        Move your head to point. Hold still on a button to press it.
+      </p>
     </main>
+
+    <!-- Hands-free: the head pointer (a dot with a ring that fills while you hold still) and
+         the webcam feed MediaPipe reads. The video is never shown or sent anywhere. -->
+    <div id="head-pointer" class="head-pointer" hidden aria-hidden="true"></div>
+    <video id="camera" class="camera" playsinline muted aria-hidden="true"></video>
 
     <script src="protocol.js"></script>
     <script src="renderer.js"></script>
+    <script type="module" src="handsfree.js"></script>
   </body>
 </html>

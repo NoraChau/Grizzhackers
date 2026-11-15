@@ -149,10 +149,40 @@ requestEl.addEventListener("keydown", (event) => {
 sendEl.addEventListener("click", submitRequest);
 
 // × button: quit the whole mascot app (window.mascotApp comes from preload.js).
-closeEl.addEventListener("click", () => {
+// × button: quit the whole mascot app (window.mascotApp comes from preload.js).
+// With the mouse it closes right away. In hands-free mode it asks first: a head user who
+// closed it by accident couldn't open it again.
+const CLOSE_CONFIRM_MS = 10000; // no answer in time = cancel
+const closeConfirmEl = document.getElementById("close-confirm");
+let closeConfirmTimer = 0;
+let bubbleBeforeClose = "";
+
+function quitApp() {
   if (micOn) sendMessage(MessageType.MIC, { on: false }); // don't leave the mic recording
   window.mascotApp.quit();
+}
+
+function askToClose() {
+  if (!closeConfirmEl.hidden) return;
+  bubbleBeforeClose = bubbleEl.textContent;
+  showReply("Close GrizzHelper?");
+  closeConfirmEl.hidden = false;
+  closeConfirmTimer = setTimeout(cancelClose, CLOSE_CONFIRM_MS);
+}
+
+function cancelClose() {
+  clearTimeout(closeConfirmTimer);
+  if (closeConfirmEl.hidden) return;
+  closeConfirmEl.hidden = true;
+  showReply(bubbleBeforeClose);
+}
+
+closeEl.addEventListener("click", () => {
+  if (document.body.classList.contains("hands-free")) askToClose();
+  else quitApp();
 });
+document.getElementById("close-yes").addEventListener("click", quitApp);
+document.getElementById("close-no").addEventListener("click", cancelClose);
 
 yesEl.addEventListener("click", () => answerConfirm(true));
 noEl.addEventListener("click", () => answerConfirm(false));

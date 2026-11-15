@@ -26,14 +26,51 @@ body {
 .request,
 .row-btn,
 .close,
+.hands-free-toggle,
 .confirm button {
   -webkit-app-region: no-drag;
 }
 
+/* Top bar: hands-free toggle on the left, × on the right. */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: -4px; /* sit snug against the bubble */
+}
+
+.hands-free-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 15px;
+  color: #2b1d0e;
+  background: #fffdf7;
+  border: 2px solid #6b4423;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.hands-free-toggle:hover {
+  background: #f3e6cf;
+}
+
+.hands-free-toggle:focus-visible {
+  outline: 3px solid #e0a43b;
+}
+
+/* On = camera is in use: a clear, different look AND label ("Hands-free on"). */
+.hands-free-toggle[aria-pressed="true"] {
+  background: #1f5f3a;
+  border-color: #123d24;
+  color: #ffffff;
+}
+
 /* Small × in the top-right corner: quits the mascot app. Still 32px so it's easy to hit. */
 .close {
-  align-self: flex-end;
-  margin-bottom: -4px; /* sit snug against the bubble */
   flex-shrink: 0;
   width: 32px;
   height: 32px;
@@ -180,4 +217,84 @@ body {
   border-radius: 4px;
   padding: 0 4px;
   background: #ffffff;
+}
+
+/* ---- Hands-free mode (body.hands-free, set by handsfree.js) ---- */
+
+.hands-free-only {
+  display: none;
+}
+
+/* The webcam feed MediaPipe reads. Invisible, but NOT display:none: Chromium may stop
+   decoding frames of a video that isn't rendered at all. */
+.camera {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.hands-free .hands-free-only {
+  display: block;
+}
+
+/* No typing in hands-free mode: hide the box, Enter button and the F9 hint, and make the
+   buttons that matter (Talk/Stop, Yes/No) big, easy targets for a head pointer. */
+body.hands-free .request,
+body.hands-free #send,
+body.hands-free #hint {
+  display: none;
+}
+
+body.hands-free .mic {
+  flex: 1;
+  justify-content: center;
+  min-height: 72px;
+  font-size: 26px;
+}
+
+body.hands-free .confirm button {
+  min-height: 72px;
+  font-size: 24px;
+}
+
+/* Bigger × so a head pointer can land on it (it asks before closing). */
+body.hands-free .close {
+  width: 44px;
+  height: 44px;
+  font-size: 28px;
+}
+
+/* The button the pointer is resting on. */
+[data-dwell].dwell-hover {
+  outline: 4px solid #e0a43b;
+  outline-offset: 2px;
+}
+
+/* Head pointer: a dot, plus a ring that fills up (--progress 0..1) while the pointer
+   holds still on a button. Full ring = click. */
+.head-pointer {
+  --progress: 0;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px; /* center it on the point */
+  border-radius: 50%;
+  pointer-events: none; /* never blocks the elements underneath */
+  z-index: 1000;
+  background:
+    radial-gradient(circle, #1f5f3a 0 5px, transparent 6px),
+    conic-gradient(#e0a43b calc(var(--progress) * 360deg), rgba(255, 253, 247, 0.6) 0);
+  border: 2px solid #1f5f3a;
+  box-shadow: 0 0 0 2px #ffffff;
+  will-change: transform;
+}
+
+.head-pointer[hidden] {
+  display: none;
 }
