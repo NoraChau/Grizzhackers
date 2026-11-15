@@ -13,6 +13,7 @@ Docs:
 The model name comes from GEMINI_VISION_MODEL. Check the docs for current names; don't guess.
 """
 
+import json
 import os
 
 import mss.tools
@@ -38,8 +39,6 @@ def get_gemini_client() -> genai.Client:
         _client = genai.Client()
     return _client
 
-    raise NotImplementedError("TODO(Nora): get_gemini_client")
-
 
 """
 Capture the main monitor and return it as PNG bytes.
@@ -62,8 +61,6 @@ def take_screenshot() -> bytes:
 
     return png_bytes
 
-    raise NotImplementedError("TODO(Nora): take_screenshot")
-
 
 """
 Tool: screenshot -> Gemini -> a short plain-English answer.
@@ -76,6 +73,7 @@ On failure return "error: ..." (e.g. "error: vision is rate-limited, try again i
 def describe_screen(question: str = "What's on my screen?") -> str:
     try:
         png_bytes = take_screenshot()
+        # Ask J if he wants straight plain text or JSON return
         json_response = get_gemini_client().models.generate_content(
             model=os.environ["GEMINI_VISION_MODEL"],
             contents=[
@@ -91,16 +89,55 @@ def describe_screen(question: str = "What's on my screen?") -> str:
     except Exception as e:
         return f"error: {e}"
 
-    return "error: describe_screen is not implemented yet"
+
+"""
+Helper for ui.click_control (not a model tool): find `description` on screen.
+
+e.g. "the Save button". Returns the center of it in screen pixels, or None if Gemini
+can't find it. Gemini can return a bounding box: check the image-understanding docs for
+its coordinate format, then convert to real pixels using the screenshot's size.
+"""
 
 
 def locate_on_screen(description: str) -> tuple[int, int] | None:
-    """Helper for ui.click_control (not a model tool): find `description` on screen.
 
-    e.g. "the Save button". Returns the center of it in screen pixels, or None if Gemini
-    can't find it. Gemini can return a bounding box: check the image-understanding docs for
-    its coordinate format, then convert to real pixels using the screenshot's size.
+    try:
+        png_bytes = take_screenshot()
+        with MSS() as sct:
+            monitor = sct.monitors[1]
 
-    TODO(Nora): implement.
-    """
-    raise NotImplementedError("TODO(Nora): locate_on_screen")
+        prompt = (
+            f"The target is {description}. Find it on this screen. Ignore the bear mascot"
+            'Reply only with JSON: {"box_2d": [y_min, x_min, y_max, x_max]} noralized to 0-1000, '
+            'or {"box_2d": null} if it is not visible'
+        )
+        response = get_gemini_client().models.generate_content(
+            model=os.environ["GEMINI_VISION_MODEL"],
+            contents=[
+                types.Part.from_bytes(data=png_bytes, mime_type="image/png"),
+                prompt,
+            ],
+            config=types.GenerateContentConfig(response_mime_type="application/json"),
+        )
+
+        box = json.loads(response.text or "{}").get("point")
+        if not box:
+            return None
+
+        # Central pixel of the bounding box
+        y_min, x_min, y_max, x_max = box
+        center_x = (x_min + x_max) / 2
+        center_y = (y_min + y_max) / 2
+
+        pixel_x = monitor["left"] + center_x / 1000 * monitor["width"]
+        pixel_y = monitor["top"] + center_y / 1000 * monitor["height"]
+
+        return int(pixel_x), int(pixel_y)
+
+    # Catching errors
+    except errors.APIError as e:
+        if e.code == 429:
+            raise RuntimeError("error: vision is rate-limited, try again in a minute")
+        raise RuntimeError("error: vision failed ({e})")
+    except (json.JSONDecodeError, ValueError, TypeError):
+        raise RuntimeError("error: vision gave an unreadable answer")
