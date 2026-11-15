@@ -18,6 +18,7 @@ const confirmEl = document.getElementById("confirm");
 const requestEl = document.getElementById("request");
 const yesEl = document.getElementById("confirm-yes");
 const noEl = document.getElementById("confirm-no");
+const sendEl = document.getElementById("send");
 const micEl = document.getElementById("mic");
 const micLabelEl = document.getElementById("mic-label");
 const hintKeyEl = document.querySelector("#hint kbd");
@@ -129,13 +130,22 @@ micEl.addEventListener("click", () => {
   sendMessage(MessageType.MIC, { on: !micOn });
 });
 
-requestEl.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter") return;
+/** Send what's in the request box (Enter key or the Enter button), then clear it. */
+function submitRequest() {
   const text = requestEl.value.trim();
-  if (text === "") return;
+  if (text === "") {
+    requestEl.focus();
+    return;
+  }
   sendMessage(MessageType.USER_TEXT, { text });
   requestEl.value = "";
+  requestEl.focus(); // ready for the next request without another click
+}
+
+requestEl.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") submitRequest();
 });
+sendEl.addEventListener("click", submitRequest);
 
 yesEl.addEventListener("click", () => answerConfirm(true));
 noEl.addEventListener("click", () => answerConfirm(false));

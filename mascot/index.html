@@ -29,12 +29,17 @@
           id="request"
           class="request"
           type="text"
-          placeholder="Type a request and press Enter"
+          placeholder="Type here"
           autocomplete="off"
           aria-label="Request for GrizzHelper"
         />
+        <!-- Same as pressing Enter in the box. -->
+        <button id="send" class="row-btn" type="button" title="Send" aria-label="Send request">
+          <span aria-hidden="true">↵</span>
+          <span>Enter</span>
+        </button>
         <!-- One click starts recording, the next click stops and sends it. -->
-        <button id="mic" class="mic" type="button" aria-pressed="false" title="Start talking">
+        <button id="mic" class="row-btn mic" type="button" aria-pressed="false" title="Start talking">
           <span class="mic-icon" aria-hidden="true">🎤</span>
           <span id="mic-label" class="mic-label">Talk</span>
         </button>
