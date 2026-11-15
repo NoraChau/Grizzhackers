@@ -24,14 +24,23 @@
       <!-- TODO(Sarahi): replace the emoji with the bear art, e.g. <img src="assets/idle.png" alt="" /> -->
       <div id="bear" class="bear" aria-hidden="true">🐻</div>
 
-      <input
-        id="request"
-        class="request"
-        type="text"
-        placeholder="Type a request and press Enter"
-        autocomplete="off"
-        aria-label="Request for GrizzHelper"
-      />
+      <div class="input-row">
+        <input
+          id="request"
+          class="request"
+          type="text"
+          placeholder="Type a request and press Enter"
+          autocomplete="off"
+          aria-label="Request for GrizzHelper"
+        />
+        <!-- One click starts recording, the next click stops and sends it. -->
+        <button id="mic" class="mic" type="button" aria-pressed="false" title="Start talking">
+          <span class="mic-icon" aria-hidden="true">🎤</span>
+          <span id="mic-label" class="mic-label">Talk</span>
+        </button>
+      </div>
+
+      <p id="hint" class="hint">Press <kbd>F9</kbd> for speech to text</p>
     </main>
 
     <script src="protocol.js"></script>

@@ -10,6 +10,7 @@ const MessageType = Object.freeze({
   // mascot -> backend
   USER_TEXT: "user_text", // payload: {text}
   CONFIRM_RESPONSE: "confirm_response", // payload: {id, approved}
+  MIC: "mic", // payload: {on}   mic button: start/stop recording
 
   // backend -> mascot
   STATE: "state", // payload: {state}  one of MascotState
@@ -17,6 +18,7 @@ const MessageType = Object.freeze({
   TRANSCRIPT: "transcript", // payload: {text}   what speech-to-text heard
   CONFIRM_REQUEST: "confirm_request", // payload: {id, question}
   ERROR: "error", // payload: {message}
+  MIC_STATUS: "mic_status", // payload: {recording, key}   is the mic on, and the hotkey name
 });
 
 const MascotState = Object.freeze({
