@@ -58,6 +58,30 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "type_text",
+            "description": "Type text into the app that is currently focused. Open or focus the app first.",
+            "parameters": {
+                "type": "object",
+                "properties": {"text": {"type": "string", "description": "The exact text to type."}},
+                "required": ["text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "press_keys",
+            "description": "Press one keyboard shortcut in the focused app.",
+            "parameters": {
+                "type": "object",
+                "properties": {"keys": {"type": "string", "description": "One shortcut like ctrl+s or enter."}},
+                "required": ["keys"],
+            },
+        },
+    },
 ]
 
 # The loop looks up the Python function by the name the model sent back.
