@@ -13,7 +13,9 @@ Docs:
 The model name comes from GEMINI_VISION_MODEL. Check the docs for current names; don't guess.
 """
 
+import mss.tools
 from google import genai
+from mss import MSS
 
 MAX_RETRIES = 3
 
@@ -27,6 +29,10 @@ def get_gemini_client() -> genai.Client:
 
     TODO(Nora): implement.
     """
+    global _client
+    if _client is None:
+        _client = genai.Client()
+    return _client
     raise NotImplementedError("TODO(Nora): get_gemini_client")
 
 
@@ -38,6 +44,12 @@ def take_screenshot() -> bytes:
 
     TODO(Nora): implement.
     """
+    with MSS() as sct:
+        img = sct.grab(sct.monitors[1])
+        png_bytes = mss.tools.to_png(img.rgb, img.size)
+    if png_bytes is None:
+        raise RuntimeError("to_png returned None")
+    return png_bytes
     raise NotImplementedError("TODO(Nora): take_screenshot")
 
 
