@@ -40,6 +40,8 @@ load_dotenv()  # before importing the agent: it reads LLM_* env vars at import t
 
 from backend import protocol
 from backend.agent.loop import run_agent
+from backend.voice.hotkey import start_push_to_talk
+from backend.voice.stt import transcribe
 
 logger = logging.getLogger(__name__)
 
@@ -135,11 +137,42 @@ class Session:
         self.agent_task = asyncio.create_task(self.handle_user_text(text))
         return True
 
+    def is_busy(self) -> bool:
+        return self.agent_task is not None and not self.agent_task.done()
+
     def close(self) -> None:
         """Mascot disconnected: answer "no" to open questions so the agent thread can finish."""
         for answer in self.pending_confirms.values():
             if not answer.done():
                 answer.set_result(False)
+
+
+# Push-to-talk is one global key, not tied to a connection, so voice requests go to the
+# most recently connected mascot window.
+current_session: Session | None = None
+
+
+async def handle_voice(wav_bytes: bytes) -> None:
+    """Push-to-talk clip -> text -> same path as a typed USER_TEXT."""
+    session = current_session
+    if session is None:
+        logger.info("heard push-to-talk but no mascot is connected")
+        return
+    ws = session.websocket
+    if session.is_busy():
+        await send(ws, protocol.REPLY, {"text": "I'm still working on the last thing. One moment!"})
+        return
+
+    await send(ws, protocol.STATE, {"state": "thinking"})
+    text = await asyncio.to_thread(transcribe, wav_bytes)  # network call: keep it off the loop
+    if not text:
+        await send(ws, protocol.REPLY, {"text": "Sorry, I didn't catch that. Try again?"})
+        await send(ws, protocol.STATE, {"state": "idle"})
+        return
+
+    await send(ws, protocol.TRANSCRIPT, {"text": text})
+    if not session.start_request(text):
+        await send(ws, protocol.REPLY, {"text": "I'm still working on the last thing. One moment!"})
 
 
 async def handler(websocket: ServerConnection) -> None:
@@ -148,8 +181,10 @@ async def handler(websocket: ServerConnection) -> None:
     The agent runs as a background task, so this loop keeps reading while it works.
     That's what lets a CONFIRM_RESPONSE arrive in the middle of a request.
     """
+    global current_session
     logger.info("mascot connected, origin=%r", websocket.request.headers.get("Origin"))
     session = Session(websocket)
+    current_session = session
 
     try:
         async for raw in websocket:
@@ -176,17 +211,21 @@ async def handler(websocket: ServerConnection) -> None:
                 await send(websocket, protocol.ERROR, {"message": f"unknown type: {msg['type']}"})
     finally:
         session.close()
+        if current_session is session:
+            current_session = None
         logger.info("mascot disconnected")
 
 
 async def main() -> None:
-    """Set up logging and serve WebSockets forever.
-
-    TODO(Michael): start push-to-talk here once voice/hotkey.py works. Its callback runs on
-    the keyboard thread: transcribe, send TRANSCRIPT, then session.start_request(text)
-    via asyncio.run_coroutine_threadsafe / loop.call_soon_threadsafe.
-    """
+    """Set up logging, start push-to-talk, and serve WebSockets forever."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")
+
+    # The push-to-talk callback runs on the keyboard thread: hand the clip to the event loop.
+    loop = asyncio.get_running_loop()
+    try:
+        start_push_to_talk(lambda wav: asyncio.run_coroutine_threadsafe(handle_voice(wav), loop))
+    except Exception:  # noqa: BLE001 - typing still works without voice
+        logger.exception("push-to-talk failed to start; typing still works")
 
     async with serve(handler, protocol.WS_HOST, protocol.WS_PORT, origins=ALLOWED_ORIGINS) as server:
         logger.info("listening on ws://%s:%s", protocol.WS_HOST, protocol.WS_PORT)
