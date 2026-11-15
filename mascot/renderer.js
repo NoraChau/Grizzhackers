@@ -55,7 +55,9 @@ function handleMessage(msg) {
       showReply(msg.payload.text);
       break;
     case MessageType.TRANSCRIPT:
-      requestEl.value = msg.payload.text;
+      // Already sent to the agent by the backend: show it, don't put it in the box
+      // (or pressing Enter would send it a second time).
+      showReply(`You said: "${msg.payload.text}"`);
       break;
     case MessageType.CONFIRM_REQUEST:
       askConfirm(msg.payload.id, msg.payload.question);

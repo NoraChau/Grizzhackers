@@ -6,41 +6,52 @@ Docs:
   - pyautogui 0.9.54: https://pyautogui.readthedocs.io/en/latest/  (hotkey, write, click)
   - keyboard 0.13.5: https://github.com/boppreh/keyboard  (write handles non-English characters)
 """
+import time
 
+import keyboard
+import pyautogui
+
+MAX_CHARS = 2000
+
+def normalize_keys(keys: str) -> str:
+    return keys.lower().replace(" ", "")
 
 def type_text(text: str) -> str:
-    """Type `text` into whatever has keyboard focus. Returns e.g. "typed 12 characters".
+    try:
+        if (not text):
+            return "Error: Nothing to type"
+        if (len(text) > MAX_CHARS):
+            return "Error: Text is too long (Max 2000 characters)"
+        time.sleep(0.5)
 
-    Gotchas:
-      - pyautogui.write() only types keys on a US keyboard (no é, ñ, emoji).
-        keyboard.write() handles Unicode.
-      - If you use pywinauto's type_keys() instead, the characters + ^ % ~ ( ) { } are
-        special keys there. Escape them or the text comes out wrong.
-
-    TODO(Jay): implement.
-    """
-    return "error: type_text is not implemented yet"
+        keyboard.write(text, delay=0.01)
+        return f"Typed {len(text)} characters"
+    except Exception as e:  # noqa: BLE001
+        return f"Error: Typing failed: {e}"
 
 
 def press_keys(keys: str) -> str:
-    """Press a shortcut like "ctrl+s", "alt+tab", or "enter". Returns e.g. "pressed ctrl+s".
-
-    Destructive shortcuts (alt+f4, ctrl+w, ctrl+enter to send) must pass the loop's
-    needs_confirmation() check first.
-
-    TODO(Jay): implement.
-    """
-    return "error: press_keys is not implemented yet"
-
+    try:
+        combo = normalize_keys(keys)
+        if (not combo):
+            return "Error: No keys given"
+        if ("," in combo):
+            return "Error: One short-cut at a time"
+        keyboard.send(combo)
+        return f"Pressed {combo}"
+    except ValueError as e:
+      return f"Error: Unknown key in '{keys}': {e}"
+    except Exception as e:  # noqa: BLE001
+        return f"Error: press_keys failed: {e}"
 
 def click_at(x: int, y: int) -> str:
-    """Left-click the screen at pixel (x, y). Used by the vision fallback, not a model tool.
-
-    Keep pyautogui.FAILSAFE on (moving the mouse into a corner aborts); catch
-    pyautogui.FailSafeException and return "error: ...".
-    Display scaling (125%, 150%) can make screenshot pixels differ from click pixels:
-    test on a laptop with scaling turned on.
-
-    TODO(Jay): implement.
-    """
-    return "error: click_at is not implemented yet"
+    try:
+        width, height = pyautogui.size()
+        if not (0 <= x < width and 0 <= y < height):
+            return f"Error: ({x}, {y}) is off screen (screen is {width}x{height})"
+        pyautogui.click(x, y)
+        return f"Clicked at ({x}, {y})"
+    except pyautogui.FailSafeException:
+        return "Error: Click cancelled"
+    except Exception as e:  # noqa: BLE001
+        return f"Error: Click failed: {e}"
