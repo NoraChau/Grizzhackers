@@ -13,7 +13,6 @@ Schema format: https://platform.openai.com/docs/guides/function-calling
 """
 
 from collections.abc import Callable
-from typing import Any
 
 from openai.types.chat import ChatCompletionFunctionToolParam
 
@@ -24,11 +23,12 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
         "type": "function",
         "function": {
             "name": "open_app",
-            "description": "Open a Windows app by name.",
+            "description": "Open a Windows app by name, or focus it if it's already open.",
             "parameters": {
                 "type": "object",
-                "properties": {"name": {"type": "string", "description": "notepad, calculator, ..."}},
+                "properties": {"name": {"type": "string", "enum": list(apps.APPS)}},
                 "required": ["name"],
+                "additionalProperties": False,
             },
         },
     },
@@ -41,6 +41,7 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
                 "type": "object",
                 "properties": {"text": {"type": "string", "description": "The exact text to type."}},
                 "required": ["text"],
+                "additionalProperties": False,
             },
         },
     },
@@ -53,27 +54,11 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
                 "type": "object",
                 "properties": {"keys": {"type": "string", "description": "One shortcut like ctrl+s or enter."}},
                 "required": ["keys"],
+                "additionalProperties": False,
             },
         },
     },
 ]
-
-# Example: copy this shape for every other tool.
-OPEN_APP: dict[str, Any] = {
-    "type": "function",
-    "function": {
-        "name": "open_app",
-        "description": "Open a Windows app such as Notepad or Calculator.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string", "description": "App name, e.g. 'notepad'."},
-            },
-            "required": ["name"],
-            "additionalProperties": False,
-        },
-    },
-}
 
 # The loop looks up the Python function by the name the model sent back.
 TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {

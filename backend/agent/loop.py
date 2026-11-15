@@ -109,7 +109,7 @@ def run_agent(user_text: str, confirm: ConfirmFn, set_state: StateFn) -> str:
                     messages=messages,
                     tools=TOOLS,
                     tool_choice="auto")
-            except APIConnectionError, APITimeoutError, APIStatusError:
+            except (APIConnectionError, APITimeoutError, APIStatusError):
                 return "Sorry, I can't reach my brain right now."
 
             msg = resp.choices[0].message
