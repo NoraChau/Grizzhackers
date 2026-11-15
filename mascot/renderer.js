@@ -18,6 +18,7 @@ const confirmEl = document.getElementById("confirm");
 const requestEl = document.getElementById("request");
 const yesEl = document.getElementById("confirm-yes");
 const noEl = document.getElementById("confirm-no");
+const closeEl = document.getElementById("close");
 const sendEl = document.getElementById("send");
 const micEl = document.getElementById("mic");
 const micLabelEl = document.getElementById("mic-label");
@@ -147,8 +148,21 @@ requestEl.addEventListener("keydown", (event) => {
 });
 sendEl.addEventListener("click", submitRequest);
 
+// × button: quit the whole mascot app (window.mascotApp comes from preload.js).
+closeEl.addEventListener("click", () => {
+  if (micOn) sendMessage(MessageType.MIC, { on: false }); // don't leave the mic recording
+  window.mascotApp.quit();
+});
+
 yesEl.addEventListener("click", () => answerConfirm(true));
 noEl.addEventListener("click", () => answerConfirm(false));
+
+// Fit the window to the content: whenever the content's height changes (longer reply,
+// Yes/No buttons shown/hidden), tell Electron the new height. No empty space above.
+function fitWindow() {
+  window.mascotApp.setHeight(Math.ceil(mascotEl.getBoundingClientRect().height));
+}
+new ResizeObserver(fitWindow).observe(mascotEl);
 
 connect();
 requestEl.focus();
