@@ -32,25 +32,60 @@ Security:
 
 import asyncio
 import logging
+from typing import Any
+
+from dotenv import load_dotenv
+from websockets.asyncio.server import ServerConnection, serve
+
+from backend import protocol
 
 logger = logging.getLogger(__name__)
 
 
-async def handler(websocket) -> None:
+async def send(websocket: ServerConnection, type_: str, payload: dict[str, Any]) -> None:
+    """Encode one message and send it to the mascot."""
+    await websocket.send(protocol.encode(type_, payload))
+
+
+async def handler(websocket: ServerConnection) -> None:
     """Handle one mascot connection: read messages, dispatch by type, send replies.
 
-    TODO(Michael): for each raw message: protocol.decode -> act on USER_TEXT /
-    CONFIRM_RESPONSE. Bad message -> send an ERROR message back, keep the connection open.
+    ECHO VERSION: replies "You said: ..." until the agent is wired in.
+    TODO(Michael): replace the echo with run_agent via asyncio.to_thread, and handle
+    CONFIRM_RESPONSE.
     """
-    raise NotImplementedError("TODO(Michael): handler")
+    logger.info("mascot connected")
+
+    async for raw in websocket:
+        try:
+            msg = protocol.decode(str(raw))
+        except ValueError as exc:
+            await send(websocket, protocol.ERROR, {"message": str(exc)})
+            continue
+
+        if msg["type"] == protocol.USER_TEXT:
+            text = msg["payload"].get("text", "")
+            logger.info("user_text: %s", text)
+            await send(websocket, protocol.STATE, {"state": "thinking"})
+            await send(websocket, protocol.REPLY, {"text": f"You said: {text}"})
+            await send(websocket, protocol.STATE, {"state": "idle"})
+        else:
+            await send(websocket, protocol.ERROR, {"message": f"unknown type: {msg['type']}"})
+
+    logger.info("mascot disconnected")
 
 
 async def main() -> None:
-    """Load .env, set up logging, start push-to-talk, and serve WebSockets forever.
+    """Load .env, set up logging, and serve WebSockets forever.
 
-    TODO(Michael): implement (see the docs snippet at the top of this file).
+    TODO(Michael): start push-to-talk here once voice/hotkey.py works.
     """
-    raise NotImplementedError("TODO(Michael): server main")
+    load_dotenv()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")
+
+    async with serve(handler, protocol.WS_HOST, protocol.WS_PORT) as server:
+        logger.info("listening on ws://%s:%s", protocol.WS_HOST, protocol.WS_PORT)
+        await server.serve_forever()
 
 
 if __name__ == "__main__":
