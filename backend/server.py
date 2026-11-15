@@ -42,6 +42,7 @@ from backend import protocol
 from backend.agent.loop import run_agent
 from backend.voice.hotkey import start_push_to_talk
 from backend.voice.stt import transcribe
+from backend.voice.tts import speak
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,16 @@ async def send(websocket: ServerConnection, type_: str, payload: dict[str, Any])
         await websocket.send(protocol.encode(type_, payload))
     except ConnectionClosed:
         logger.info("dropped %s: mascot disconnected", type_)
+
+
+async def reply_and_speak(websocket: ServerConnection, text: str) -> None:
+    """Show `text` in the bubble, then say it out loud with the bear in its talking look."""
+    await send(websocket, protocol.REPLY, {"text": text})
+    await send(websocket, protocol.STATE, {"state": "talking"})
+    try:
+        await asyncio.to_thread(speak, text)  # blocks until playback ends: keep it off the loop
+    finally:
+        await send(websocket, protocol.STATE, {"state": "idle"})
 
 
 class Session:
@@ -125,10 +136,7 @@ class Session:
             await send(self.websocket, protocol.STATE, {"state": "idle"})
 
         logger.info("reply: %s", reply)
-        await send(self.websocket, protocol.REPLY, {"text": reply})
-        # TODO(Michael): once voice/tts.py works:
-        #   await send(..., STATE "talking"); await asyncio.to_thread(speak, reply);
-        #   await send(..., STATE "idle")
+        await reply_and_speak(self.websocket, reply)
 
     def start_request(self, text: str) -> bool:
         """Start the agent in the background. Returns False if it's already busy."""
@@ -166,8 +174,7 @@ async def handle_voice(wav_bytes: bytes) -> None:
     await send(ws, protocol.STATE, {"state": "thinking"})
     text = await asyncio.to_thread(transcribe, wav_bytes)  # network call: keep it off the loop
     if not text:
-        await send(ws, protocol.REPLY, {"text": "Sorry, I didn't catch that. Try again?"})
-        await send(ws, protocol.STATE, {"state": "idle"})
+        await reply_and_speak(ws, "Sorry, I didn't catch that. Try again?")
         return
 
     await send(ws, protocol.TRANSCRIPT, {"text": text})
