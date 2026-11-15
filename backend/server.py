@@ -40,7 +40,7 @@ load_dotenv()  # before importing the agent: it reads LLM_* env vars at import t
 
 from backend import protocol
 from backend.agent.loop import run_agent
-from backend.voice.hotkey import start_push_to_talk
+from backend.voice.hotkey import PUSH_TO_TALK_KEY, Recorder, start_push_to_talk
 from backend.voice.stt import transcribe
 from backend.voice.tts import speak
 
@@ -49,9 +49,10 @@ logger = logging.getLogger(__name__)
 # How long to wait for the user to press Yes/No before treating it as "no".
 CONFIRM_TIMEOUT_S = 60
 
-# None = allow any Origin (just log it). Set to e.g. ["file://"] once you know what the
-# mascot window sends. websockets rejects connections whose Origin isn't in the list.
-ALLOWED_ORIGINS: list[str | None] | None = None
+# Only the mascot may connect: its window sends Origin "file://" (seen in the log).
+# Web pages send "http(s)://..." and a file opened in a browser sends "null", so both are
+# rejected. websockets refuses any connection whose Origin isn't in this list.
+ALLOWED_ORIGINS: list[str | None] | None = ["file://"]
 
 
 async def send(websocket: ServerConnection, type_: str, payload: dict[str, Any]) -> None:
@@ -159,6 +160,29 @@ class Session:
 # most recently connected mascot window.
 current_session: Session | None = None
 
+# The one microphone recorder, shared by the F9 hotkey and the mascot's mic button.
+# None if push-to-talk failed to start (no mic / keyboard hook).
+recorder: Recorder | None = None
+
+
+async def send_mic_status(recording: bool) -> None:
+    """Tell the mascot whether the mic is on, so the button always shows the truth."""
+    if current_session is not None:
+        await send(current_session.websocket, protocol.MIC_STATUS,
+                   {"recording": recording, "key": PUSH_TO_TALK_KEY.upper()})
+
+
+async def set_mic(on: bool) -> None:
+    """Mic button clicked: start or stop recording (stop() sends the clip to handle_voice)."""
+    if recorder is None:
+        if current_session is not None:
+            await send(current_session.websocket, protocol.REPLY,
+                       {"text": "Sorry, I can't use the microphone right now."})
+            await send_mic_status(False)
+        return
+    # start/stop open and close the audio device: quick, but blocking, so off the loop.
+    await asyncio.to_thread(recorder.start if on else recorder.stop)
+
 
 async def handle_voice(wav_bytes: bytes) -> None:
     """Push-to-talk clip -> text -> same path as a typed USER_TEXT."""
@@ -192,6 +216,7 @@ async def handler(websocket: ServerConnection) -> None:
     logger.info("mascot connected, origin=%r", websocket.request.headers.get("Origin"))
     session = Session(websocket)
     current_session = session
+    await send_mic_status(recorder is not None and recorder.recording)
 
     try:
         async for raw in websocket:
@@ -214,6 +239,9 @@ async def handler(websocket: ServerConnection) -> None:
             elif msg["type"] == protocol.CONFIRM_RESPONSE:
                 session.answer_confirm(payload)
 
+            elif msg["type"] == protocol.MIC:
+                await set_mic(payload.get("on") is True)
+
             else:
                 await send(websocket, protocol.ERROR, {"message": f"unknown type: {msg['type']}"})
     finally:
@@ -227,10 +255,14 @@ async def main() -> None:
     """Set up logging, start push-to-talk, and serve WebSockets forever."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")
 
-    # The push-to-talk callback runs on the keyboard thread: hand the clip to the event loop.
+    # Recorder callbacks run on the keyboard / timer / worker thread: hand them to the loop.
+    global recorder
     loop = asyncio.get_running_loop()
     try:
-        start_push_to_talk(lambda wav: asyncio.run_coroutine_threadsafe(handle_voice(wav), loop))
+        recorder = start_push_to_talk(
+            on_recording=lambda wav: asyncio.run_coroutine_threadsafe(handle_voice(wav), loop),
+            on_status=lambda on: asyncio.run_coroutine_threadsafe(send_mic_status(on), loop),
+        )
     except Exception:  # noqa: BLE001 - typing still works without voice
         logger.exception("push-to-talk failed to start; typing still works")
 

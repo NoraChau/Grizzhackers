@@ -10,11 +10,50 @@ import time
 
 import keyboard
 import pyautogui
+import win32clipboard
+import win32con
+
+from backend.tools.apps import focus_last_app
 
 MAX_CHARS = 2000
 
 def normalize_keys(keys: str) -> str:
     return keys.lower().replace(" ", "")
+
+def _get_clipboard_text() -> str | None:
+    win32clipboard.OpenClipboard()
+    try:
+        if win32clipboard.IsClipboardFormatAvailable(win32con.CF_UNICODETEXT):
+            return win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
+        return None
+    finally:
+        win32clipboard.CloseClipboard()
+
+
+def _set_clipboard_text(text: str) -> None:
+    win32clipboard.OpenClipboard()
+    try:
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(win32con.CF_UNICODETEXT, text)
+    finally:
+        win32clipboard.CloseClipboard()
+
+
+def _paste(text: str) -> None:
+    """Type `text` by pasting it, then put the user's clipboard text back.
+
+    Why not keyboard.write: the server's F9 push-to-talk hook runs in this same process, and
+    with it active, fast key-by-key typing drops letters ("GrizzHelper" -> "rrrr").
+    One Ctrl+V can't drop letters, and handles any Unicode. (Non-text clipboard
+    contents, like a copied image, are not restored.)
+    """
+    previous = _get_clipboard_text()
+    _set_clipboard_text(text)
+    keyboard.send("ctrl+v")
+    time.sleep(0.3)  # let the app read the clipboard before we restore it
+    if previous is not None:
+        _set_clipboard_text(previous)
+
 
 def type_text(text: str) -> str:
     try:
@@ -22,9 +61,14 @@ def type_text(text: str) -> str:
             return "Error: Nothing to type"
         if (len(text) > MAX_CHARS):
             return "Error: Text is too long (Max 2000 characters)"
-        time.sleep(0.5)
+        if (error := focus_last_app()):  # the mascot may have taken focus
+            return error
+        time.sleep(0.3)
 
-        keyboard.write(text, delay=0.01)
+        try:
+            _paste(text)
+        except Exception:  # noqa: BLE001 - clipboard busy: type slowly instead (30 ms+ is reliable)
+            keyboard.write(text, delay=0.05)
         return f"Typed {len(text)} characters"
     except Exception as e:  # noqa: BLE001
         return f"Error: Typing failed: {e}"
@@ -37,6 +81,8 @@ def press_keys(keys: str) -> str:
             return "Error: No keys given"
         if ("," in combo):
             return "Error: One short-cut at a time"
+        if (error := focus_last_app()):  # e.g. pressing Yes on a confirm focused the mascot
+            return error
         keyboard.send(combo)
         return f"Pressed {combo}"
     except ValueError as e:

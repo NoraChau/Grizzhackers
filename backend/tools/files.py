@@ -1,4 +1,4 @@
-"""Open folders and files: "Open my Downloads folder and open the newest PDF".
+"""Open folders and files: "Open my Downloads folder and open the newest PDF" / "...my resume".
 
 Owner: Nora
 
@@ -6,18 +6,37 @@ Docs:
   - pathlib: https://docs.python.org/3/library/pathlib.html  (Path.home(), .glob(), .stat().st_mtime)
   - os.startfile, which opens with the default app like a double-click:
     https://docs.python.org/3/library/os.html#os.startfile
+  - winreg (where Windows says each user folder really is):
+    https://docs.python.org/3/library/winreg.html
 """
 
+import difflib
 import os
+import winreg
 from pathlib import Path
 
+# OneDrive often moves Documents/Desktop/Pictures to ~/OneDrive/..., so ~/Documents can be
+# the WRONG folder (it was on Jay's laptop). Windows records the real location in the
+# registry under these value names; fall back to ~/<Name> if the lookup fails.
+_SHELL_FOLDERS_KEY = r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
+
+
+def _user_folder(registry_name: str, fallback: str) -> Path:
+    """Return the real path of a user folder like Documents, as Windows sees it."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _SHELL_FOLDERS_KEY) as key:
+            raw, _type = winreg.QueryValueEx(key, registry_name)
+        return Path(winreg.ExpandEnvironmentStrings(raw))
+    except OSError:
+        return Path.home() / fallback
+
+
 # Folders the model may name. Keep it to the user's own folders.
-# Gotcha: OneDrive often moves Documents/Desktop/Pictures to ~/OneDrive/...; check each laptop.
 FOLDERS: dict[str, Path] = {
-    "downloads": Path.home() / "Downloads",
-    "documents": Path.home() / "Documents",
-    "desktop": Path.home() / "Desktop",
-    "pictures": Path.home() / "Pictures",
+    "downloads": _user_folder("{374DE290-123F-4565-9164-39C4925E467B}", "Downloads"),
+    "documents": _user_folder("Personal", "Documents"),
+    "desktop": _user_folder("Desktop", "Desktop"),
+    "pictures": _user_folder("My Pictures", "Pictures"),
 }
 
 # Only these may be opened. Never .exe, .bat, .cmd, .ps1, .lnk, .msi, ...: "open the newest
@@ -33,52 +52,77 @@ SAFE_EXTENSIONS: set[str] = {
     ".webp",
     ".mp3",
     ".mp4",
+    ".md",
+    ".xlsx",
+    ".pptx",
 }
 
 
-"""
-Open FOLDERS[name] in File Explorer. Returns e.g. "opened Downloads".
-
-Unknown name -> "error: ..." listing the folders you do know.
-"""
 def open_folder(name: str) -> str:
+    """Open FOLDERS[name] in File Explorer. Returns e.g. "opened downloads".
 
-    folder = FOLDERS.get(name.strip().lower())
-
+    Unknown name -> "error: ..." listing the folders you do know.
+    """
+    key = name.strip().lower()
+    folder = FOLDERS.get(key)
     if folder is None:
         return f"error: unknown folder '{name}'. Try: {', '.join(FOLDERS)}"
-
     if not folder.exists():
-        return f"error: {folder} doesn't exist on this PC."
+        return f"error: the {key} folder doesn't exist on this PC."
 
-    os.startfile(folder)
+    try:
+        os.startfile(folder)
+    except OSError as e:
+        return f"error: couldn't open {key}: {e}"
+    return f"opened {key}"
 
-    return f"opened {name}"
+
+def _simplify(text: str) -> str:
+    """'Resume-J-sV3.pdf' -> 'resumejsv3pdf': ignore case, spaces and punctuation."""
+    return "".join(ch for ch in text.lower() if ch.isalnum())
 
 
-"""Open the most recently modified file with `extension` in FOLDERS[folder].
+def open_file(folder: str, name: str, extension: str) -> str:
+    """Open a file in FOLDERS[folder]: the newest one whose name contains `name`.
 
-e.g. open_newest_file("downloads", ".pdf") -> "opened report.pdf".
-Refuse anything not in SAFE_EXTENSIONS. No matching file -> "error: no PDF files in Downloads".
-"""
-def open_newest_file(folder: str, extension: str) -> str:
-    # Extension filter
-    if extension not in SAFE_EXTENSIONS:
-        return (
-            f"error: {extension} considered unsafe. Try: {', '.join(SAFE_EXTENSIONS)}"
-        )
+    name "" = any name, so ("downloads", "", ".pdf") opens the newest PDF.
+    extension "any" = any type in SAFE_EXTENSIONS (people often don't know the type).
+    Names match loosely because speech-to-text rarely gets punctuation right.
+    Refuse anything not in SAFE_EXTENSIONS. No match -> "error: ..." with close names.
+    """
+    # Accept "pdf", "PDF" and ".pdf" alike, then check against the allow-list.
+    ext = extension.strip().lower()
+    if ext == "any":
+        allowed = SAFE_EXTENSIONS
+    else:
+        ext = "." + ext.lstrip(".")
+        if ext not in SAFE_EXTENSIONS:
+            return f"error: I can't open {ext} files. I can open: {', '.join(sorted(SAFE_EXTENSIONS))}"
+        allowed = {ext}
 
-    # Get and check folder's validity
-    folder_path = FOLDERS.get(folder)
+    key = folder.strip().lower()
+    folder_path = FOLDERS.get(key)
     if folder_path is None:
         return f"error: unknown folder '{folder}'. Try: {', '.join(FOLDERS)}"
     if not folder_path.exists():
-        return f"error: {folder_path} doesn't exist on this PC."
+        return f"error: the {key} folder doesn't exist on this PC."
 
-    files = [p for p in folder_path.glob(f"*{extension}") if p.is_file()]  # populate the list with
-    newest = max(files, key=lambda p: p.stat().st_mtime, default=None)
-    if newest is None:
-        return f"error: no files matching '{extension}' in {folder_path}"
+    candidates = [p for p in folder_path.iterdir() if p.is_file() and p.suffix.lower() in allowed]
+    wanted = _simplify(name)
+    matches = [p for p in candidates if wanted in _simplify(p.name)]
+    if not matches:
+        if not wanted:
+            return f"error: no {ext if ext != 'any' else 'openable'} files in {key}"
+        by_simple = {_simplify(p.stem): p.name for p in candidates}
+        close = difflib.get_close_matches(wanted, by_simple, n=3, cutoff=0.5)
+        hint = f" Did you mean: {', '.join(by_simple[c] for c in close)}?" if close else ""
+        return f"error: no file named like '{name}' in {key}.{hint}"
 
-    os.startfile(newest)
+    newest = max(matches, key=lambda p: p.stat().st_mtime)
+    try:
+        os.startfile(newest)
+    except OSError as e:
+        return f"error: couldn't open {newest.name}: {e}"
+    if wanted and len(matches) > 1:
+        return f"opened {newest.name} (the newest of {len(matches)} matching files)"
     return f"opened {newest.name}"

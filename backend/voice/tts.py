@@ -20,6 +20,7 @@ import logging
 import os
 
 import sounddevice as sd
+from elevenlabs.core.api_error import ApiError
 
 from backend.voice.client import get_client
 
@@ -63,6 +64,10 @@ def speak(text: str) -> None:
                     out.write(data[:cut])  # blocks until the device takes it
                 leftover = data[cut:]
         # Leaving the `with` block waits for the buffered audio to finish playing.
+    except ApiError as e:  # e.g. 402: free plans can't use library voices, pick a premade one
+        detail = e.body.get("detail") if isinstance(e.body, dict) else None
+        message = detail.get("message") if isinstance(detail, dict) else detail
+        logger.error("text-to-speech failed (HTTP %s): %s", e.status_code, message or e.body)
     except Exception:  # noqa: BLE001 - network/auth/no speakers: the bubble still shows it
         logger.exception("text-to-speech failed")
 
