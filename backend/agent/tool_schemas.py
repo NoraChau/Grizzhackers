@@ -17,7 +17,7 @@ from typing import Any
 
 from openai.types.chat import ChatCompletionFunctionToolParam
 
-from backend.tools import apps
+from backend.tools import apps, keyboard_mouse
 
 TOOLS: list[ChatCompletionFunctionToolParam] = [
     {
@@ -29,6 +29,30 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
                 "type": "object",
                 "properties": {"name": {"type": "string", "description": "notepad, calculator, ..."}},
                 "required": ["name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "type_text",
+            "description": "Type text into the app that is currently focused. Open or focus the app first.",
+            "parameters": {
+                "type": "object",
+                "properties": {"text": {"type": "string", "description": "The exact text to type."}},
+                "required": ["text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "press_keys",
+            "description": "Press one keyboard shortcut in the focused app.",
+            "parameters": {
+                "type": "object",
+                "properties": {"keys": {"type": "string", "description": "One shortcut like ctrl+s or enter."}},
+                "required": ["keys"],
             },
         },
     },
@@ -54,4 +78,6 @@ OPEN_APP: dict[str, Any] = {
 # The loop looks up the Python function by the name the model sent back.
 TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {
     "open_app": apps.open_app,
+    "type_text": keyboard_mouse.type_text,
+    "press_keys": keyboard_mouse.press_keys,
 }

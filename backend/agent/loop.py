@@ -35,6 +35,7 @@ load_dotenv()
 
 from backend.agent.prompt import SYSTEM_PROMPT
 from backend.agent.tool_schemas import TOOL_FUNCTIONS, TOOLS
+from backend.tools.keyboard_mouse import normalize_keys
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def needs_confirmation(tool_name: str, args: dict[str, Any]) -> str | None:
     DANGER_KEYS = {"alt+f4", "ctrl+w", "shift+delete", "delete"}
 
     if (tool_name == "press_keys"):
-        keys = args.get("keys", "").lower()
+        keys = normalize_keys(args.get("keys", ""))
         if (keys in DANGER_KEYS):
             return f"Press {keys}? This is a destructive action that could close or delete something."
 
