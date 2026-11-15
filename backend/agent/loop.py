@@ -21,11 +21,20 @@ Terminal mode, no mascot needed (the 7:30 PM milestone). From the repo root:
     python -m backend.agent.loop
 """
 
+import json
 import logging
+import os
+import time
 from collections.abc import Callable
 from typing import Any
 
-from openai import OpenAI
+from dotenv import load_dotenv
+from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
+
+load_dotenv()
+
+from backend.agent.prompt import SYSTEM_PROMPT
+from backend.agent.tool_schemas import TOOL_FUNCTIONS, TOOLS
 
 logger = logging.getLogger(__name__)
 
@@ -38,67 +47,119 @@ ConfirmFn = Callable[[str], bool]
 # Tell the mascot what we're doing: "thinking", "idle", ... (see protocol.MascotState).
 StateFn = Callable[[str], None]
 
+MODEL = os.environ["LLM_MODEL"]
 
 def make_client() -> OpenAI:
-    """Build the OpenAI client from env vars only (LLM_BASE_URL, LLM_API_KEY).
+    return OpenAI(base_url=os.environ["LLM_BASE_URL"], api_key=os.environ["LLM_API_KEY"])
 
-    Never hardcode the URL or the model name: switching to the Grok fallback must be a
-    .env change, not a code change.
-
-    TODO(Jay): scripts/smoke_test.py builds the same client. Look there.
-    """
-    raise NotImplementedError("TODO(Jay): make_client")
-
+CLIENT = make_client()
 
 def needs_confirmation(tool_name: str, args: dict[str, Any]) -> str | None:
-    """Return a yes/no question if this tool call could destroy or send something, else None.
+    DANGER_WORDS = {"delete", "send", "remove", "buy", "purchase", "pay", "close", "don't save", "discard"}
+    DANGER_KEYS = {"alt+f4", "ctrl+w", "shift+delete", "delete"}
 
-    Destructive = delete, send, purchase, or close unsaved work. Examples:
-    press_keys("alt+f4"), click_control(name="Send"), click_control(name="Delete").
-    run_agent must ask with confirm() and skip the tool if the answer is no.
-    Never skip this check (CLAUDE.md rule).
+    if (tool_name == "press_keys"):
+        keys = args.get("keys", "").lower()
+        if (keys in DANGER_KEYS):
+            return f"Press {keys}? This is a destructive action that could close or delete something."
 
-    TODO(Jay)
-    """
-    raise NotImplementedError("TODO(Jay): needs_confirmation")
+    if (tool_name == "click_control"):
+        label = args.get("name" , "").lower()
+        if any(word in label for word in DANGER_WORDS):
+            return f"Click {label}? This is a destructive action that could send or delete something."
+
+    return None
 
 
 def run_tool(name: str, arguments: str) -> str:
-    """Run one tool call from the model and return its result as a short string.
+    start = time.perf_counter()
 
-    `arguments` is the raw JSON string from call.function.arguments, and it can be
-    invalid JSON (models make mistakes). Unknown tool, bad JSON, or an exception inside
-    the tool: return "error: ...", never raise into the loop.
+    if (name not in TOOL_FUNCTIONS):
+        result = f"Error: Unknown tool {name}"
+    else:
+        try:
+            args = json.loads(arguments)
+            if (not isinstance(args, dict)):
+                result = "Error: Arguments must be a JSON object"
+            else:
+                result = TOOL_FUNCTIONS[name](**args)
+        except json.JSONDecodeError:
+            result = f"Error: Bad JSON arguments for {name}"
+        except TypeError as e:
+            result = f"Error: Wrong arguments for {name} : {e}"
+        except Exception as e:  # noqa: BLE001
+            result = f"Error: {name} failed: {e}"
 
-    Log one line per call: tool name, args, result, and how long it took in ms
-    (time.perf_counter()).
+    ms = (time.perf_counter() - start) * 1000
+    logger.info("tool=%s args=%s result=%s ms=%d", name, arguments, result, ms)
 
-    TODO(Jay): look the function up in tool_schemas.TOOL_FUNCTIONS.
-    """
-    raise NotImplementedError("TODO(Jay): run_tool")
-
+    return str(result)
 
 def run_agent(user_text: str, confirm: ConfirmFn, set_state: StateFn) -> str:
-    """Handle one user request end to end and return the reply text for the bubble.
+    set_state("thinking")
+    messages: list[Any] = [{"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_text}]
 
-    This is normal (blocking) code. server.py runs it in a worker thread.
+    try:
+        for step in range(MAX_STEPS):
+            try:
+                resp = CLIENT.chat.completions.create(
+                    model=MODEL,
+                    messages=messages,
+                    tools=TOOLS,
+                    tool_choice="auto")
+            except APIConnectionError, APITimeoutError, APIStatusError:
+                return "Sorry, I can't reach my brain right now."
 
-    TODO(Jay): the loop described at the top of this file. Use prompt.SYSTEM_PROMPT and
-    tool_schemas.TOOLS, the model name from os.environ["LLM_MODEL"], and stop after
-    MAX_STEPS with a friendly "I couldn't finish that" reply.
-    """
-    raise NotImplementedError("TODO(Jay): run_agent")
+            msg = resp.choices[0].message
+            messages.append({"role": "assistant", "content": msg.content,
+                             "tool_calls": msg.tool_calls,
+                             "reasoning": getattr(msg, "reasoning", None)})
 
+            if (not msg.tool_calls):
+                return msg.content or "Done!"
+
+            for call in msg.tool_calls:
+                name = call.function.name
+                try:
+                        args = json.loads(call.function.arguments)
+                except json.JSONDecodeError:
+                    args = {}
+                if not isinstance(args, dict):
+                    args = {}
+
+                question = needs_confirmation(tool_name=name, args=args)
+
+                if (question and confirm(question) is False):
+                    result = "Error: The user said no, so I did not do it."
+                else:
+                    result = run_tool(name, call.function.arguments)
+
+                messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
+
+        return "I couldn't finish that. Can you try a smaller step?"
+    finally:
+        set_state("idle")
 
 def main() -> None:
-    """Terminal mode: type a request, see the reply. No mascot or voice needed.
+    logging.basicConfig(level=logging.INFO)
 
-    TODO(Jay): load .env (python-dotenv's load_dotenv), turn on logging
-    (logging.basicConfig(level=logging.INFO)), then loop: input() -> run_agent -> print.
-    For confirm, ask in the terminal: input(question + " [y/n] ").
-    """
-    raise NotImplementedError("TODO(Jay): terminal mode")
+    def terminal_confirm(question: str) -> bool:
+        ans = input(question + " [y/n] ")
+        ans = ans.strip().lower()
+        return bool(ans.startswith("y"))
 
+    def terminal_state(state) -> None:
+        print("["+ state + "]")
+
+    while(True):
+        text = input("you> ").strip()
+        if (not text):
+            continue
+        if (text in ("exit", "quit")):
+            break
+        reply = run_agent(text, terminal_confirm, terminal_state)
+        print("grizz> " + reply)
 
 if __name__ == "__main__":
     main()
