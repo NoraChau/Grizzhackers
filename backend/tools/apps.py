@@ -92,8 +92,9 @@ def open_app(name: str) -> str:
       _last_window = spec.wrapper_object()
       _last_window.set_focus()
       if (key == "notepad"):
-        _new_notepad_tab(spec)
-        return "notepad was already open, now on a blank tab."
+        # No new tab here: the user may want the text that's already there ("delete the text").
+        # The model reliably presses ctrl+n when told to; a true/false arg it got wrong ~1 in 3.
+        return "notepad was already open, focused the user's current tab. To write a NEW note, press ctrl+n first."
       return f"{key} was already open, focused the window."
 
     try:
@@ -110,7 +111,7 @@ def open_app(name: str) -> str:
 
     _last_window = spec.wrapper_object()
     _last_window.set_focus()
-    if (key == "notepad"):
+    if (key == "notepad"):  # fresh launch restores old tabs: start on a blank one
       _new_notepad_tab(spec)
       return "Opened notepad on a blank tab."
 

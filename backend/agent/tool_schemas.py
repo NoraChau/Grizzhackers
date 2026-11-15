@@ -23,7 +23,7 @@ TOOLS: list[ChatCompletionFunctionToolParam] = [
         "type": "function",
         "function": {
             "name": "open_app",
-            "description": "Open a Windows app by name, or focus it if it's already open. Notepad always gets a new blank tab.",
+            "description": "Open a Windows app by name, or focus it if it's already open.",
             "parameters": {
                 "type": "object",
                 "properties": {"name": {"type": "string", "enum": list(apps.APPS)}},
