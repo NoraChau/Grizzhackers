@@ -19,6 +19,7 @@ WS_PORT = 8765
 # ---- Mascot -> backend ----
 USER_TEXT = "user_text"  # payload: {"text": str}             the user typed a request
 CONFIRM_RESPONSE = "confirm_response"  # payload: {"id": str, "approved": bool}
+MIC = "mic"  # payload: {"on": bool}                            mic button: start/stop recording
 
 # ---- Backend -> mascot ----
 STATE = "state"  # payload: {"state": MascotState}             changes the bear's look
@@ -26,6 +27,8 @@ REPLY = "reply"  # payload: {"text": str}                       show in the spee
 TRANSCRIPT = "transcript"  # payload: {"text": str}             what speech-to-text heard
 CONFIRM_REQUEST = "confirm_request"  # payload: {"id": str, "question": str}
 ERROR = "error"  # payload: {"message": str}
+# payload: {"recording": bool, "key": str}  is the mic on (button OR hotkey), and the hotkey name
+MIC_STATUS = "mic_status"
 
 MascotState = Literal["idle", "thinking", "talking", "confirm"]
 

@@ -10,13 +10,13 @@ body {
   overflow: hidden;
 }
 
+/* The window resizes itself to fit this (see renderer.js fitWindow), so it must take its
+   height from its content, not from the window. */
 .mascot {
-  height: 100%;
   box-sizing: border-box;
-  padding: 12px;
+  padding: 8px 12px 12px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   gap: 10px;
   -webkit-app-region: drag; /* frameless window: drag it by its body */
 }
@@ -24,8 +24,40 @@ body {
 /* Anything clickable or typeable must opt out of dragging, or it won't receive clicks. */
 .bubble,
 .request,
+.row-btn,
+.close,
 .confirm button {
   -webkit-app-region: no-drag;
+}
+
+/* Small × in the top-right corner: quits the mascot app. Still 32px so it's easy to hit. */
+.close {
+  align-self: flex-end;
+  margin-bottom: -4px; /* sit snug against the bubble */
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  color: #2b1d0e;
+  background: #fffdf7;
+  border: 2px solid #6b4423;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: #b3261e;
+  border-color: #7a1712;
+  color: #ffffff;
+}
+
+.close:focus-visible {
+  outline: 3px solid #e0a43b;
 }
 
 .bubble {
@@ -35,7 +67,7 @@ body {
   border-radius: 16px;
   padding: 12px 14px;
   line-height: 1.35;
-  max-height: 40%;
+  max-height: 180px; /* long replies scroll instead of making the window huge */
   overflow-y: auto;
 }
 
@@ -67,8 +99,14 @@ body {
 
 /* TODO(Sarahi): a different look per state, e.g. .mascot[data-state="thinking"] .bear { ... } */
 
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
 .request {
-  width: 100%;
+  flex: 1;
+  min-width: 0; /* let the box shrink so the mic button always fits */
   box-sizing: border-box;
   padding: 12px 14px;
   font-size: 18px;
@@ -79,4 +117,67 @@ body {
 
 .request:focus {
   outline: 3px solid #e0a43b;
+}
+
+/* Buttons next to the text box (Enter, mic): big targets, same look. */
+.row-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  font-size: 18px;
+  border: 2px solid #6b4423;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #2b1d0e;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row-btn:hover {
+  background: #f3e6cf;
+}
+
+.row-btn:focus-visible {
+  outline: 3px solid #e0a43b;
+}
+
+/* Mic while recording: changes BOTH color and text (never color alone, for color-blind users). */
+.mic[aria-pressed="true"] {
+  background: #b3261e;
+  border-color: #7a1712;
+  color: #ffffff;
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  50% {
+    box-shadow: 0 0 0 5px rgba(179, 38, 30, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic[aria-pressed="true"] {
+    animation: none;
+  }
+}
+
+.hint {
+  margin: 0;
+  font-size: 14px;
+  text-align: center;
+  color: #2b1d0e;
+  background: rgba(255, 253, 247, 0.85); /* readable over any desktop behind the window */
+  border-radius: 8px;
+  padding: 2px 8px;
+  align-self: center;
+}
+
+.hint kbd {
+  font-family: inherit;
+  font-weight: 600;
+  border: 1px solid #6b4423;
+  border-radius: 4px;
+  padding: 0 4px;
+  background: #ffffff;
 }

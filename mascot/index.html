@@ -12,6 +12,10 @@
   </head>
   <body>
     <main id="mascot" class="mascot" data-state="idle">
+      <button id="close" class="close" type="button" title="Close GrizzHelper" aria-label="Close GrizzHelper">
+        <span aria-hidden="true">×</span>
+      </button>
+
       <div id="bubble" class="bubble" role="status" aria-live="polite">
         Hi! I'm GrizzHelper. What can I do for you?
       </div>
@@ -24,14 +28,28 @@
       <!-- TODO(Sarahi): replace the emoji with the bear art, e.g. <img src="assets/idle.png" alt="" /> -->
       <div id="bear" class="bear" aria-hidden="true">🐻</div>
 
-      <input
-        id="request"
-        class="request"
-        type="text"
-        placeholder="Type a request and press Enter"
-        autocomplete="off"
-        aria-label="Request for GrizzHelper"
-      />
+      <div class="input-row">
+        <input
+          id="request"
+          class="request"
+          type="text"
+          placeholder="Type here"
+          autocomplete="off"
+          aria-label="Request for GrizzHelper"
+        />
+        <!-- Same as pressing Enter in the box. -->
+        <button id="send" class="row-btn" type="button" title="Send" aria-label="Send request">
+          <span aria-hidden="true">↵</span>
+          <span>Enter</span>
+        </button>
+        <!-- One click starts recording, the next click stops and sends it. -->
+        <button id="mic" class="row-btn mic" type="button" aria-pressed="false" title="Start talking">
+          <span class="mic-icon" aria-hidden="true">🎤</span>
+          <span id="mic-label" class="mic-label">Talk</span>
+        </button>
+      </div>
+
+      <p id="hint" class="hint">Press <kbd>F9</kbd> for speech to text</p>
     </main>
 
     <script src="protocol.js"></script>
